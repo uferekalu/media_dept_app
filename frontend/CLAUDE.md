@@ -27,10 +27,74 @@ components both status pipelines (Service and Broadcast) need.
 
 ## Brand
 
-Not yet decided for this app — ask the user before picking a primary color/brand
-direction. Don't default to Protocol's purple just because it's a sibling project; the
-Media Department may want its own identity. Once decided, follow the exact same
-tokenization discipline as Protocol (below) — just with different values.
+**Brand colors: Rose Red and white.** Rose Red is the primary/accent color across the
+entire UI (primary buttons, active nav states, links, the status steppers' "active"
+step, focus rings, selected nav items) — the same *role* purple plays in protocol_dept_app,
+just a different hue. White (and near-white/near-black neutrals derived from it) forms
+the base surface in light mode, exactly like Protocol.
+
+- Pick one Rose Red hue and derive a full 50–950 scale from it, the same way Protocol's
+  `globals.css` derives its purple scale (see that file for the exact technique: a base
+  hex at 600, a Tailwind-style ramp above/below it, neutrals given a slight hue bias
+  toward the brand color in `oklch()` rather than a pure unrelated gray).
+- **Exact hex value is not finalized yet** — per [[feedback_visual_design_no_browser]]
+  (no live browser preview available in this environment), propose a specific candidate
+  hex, show the derived scale, and get explicit confirmation before writing it into
+  `globals.css`, rather than guessing blind on a brand-defining color. A reasonable
+  starting candidate to confirm: a deep, slightly warm red-pink around `#C2185B`–`#B0193F`
+  (true rose red — more red than a Barbie/magenta pink, more pink than a pure fire-engine
+  red) — not final until confirmed.
+- Status colors stay semantically independent of the brand hue (Protocol's pattern:
+  pending/in-progress/complete get their own neutral/amber/green tokens, not brand-tinted
+  ones) — this app has more statuses (`Service` has 8, `Broadcast` has 4), so plan a
+  slightly larger but still small, deliberate status-color set, not one improvised per
+  screen.
+
+## Header, Navigation & Drawer — mirror protocol_dept_app's structure exactly
+
+Same component shapes, same breakpoints, same interaction rules as protocol_dept_app's
+frontend — only the brand color, wordmark/logo, and link list differ. This is a
+deliberate reuse of a proven pattern, not a coincidence — replicate the *structure*,
+re-theme it in Rose Red, and populate it with this app's own nav links.
+
+- **`AppHeader`** — sticky top bar (`sticky top-0 z-40`, blurred translucent background),
+  logo + wordmark on the left (wordmark shortens to an abbreviated form below `sm`, full
+  name at `sm` and up — e.g. "Media Dept" / "Media Department", the same idea as
+  Protocol's "Protocol Dept" / "Protocol Department"), `UserMenu` + `ThemeToggle` on the
+  right.
+- **`AppNav`** — desktop/tablet only (`sm` and up), a sticky horizontal scrollable tab
+  row directly under the header, active link underlined and colored with the primary
+  token, gated on a confirmed logged-in identity (renders nothing until
+  `useCurrentUser()` resolves — don't gate on a raw token, it can be stale).
+- **`MobileNavDrawer`** — below `sm` only, a collapsible icon-rail sidebar fixed to the
+  left edge spanning the viewport height under the header. Collapsed width reserved in
+  page content via a `pl-14`-equivalent gutter so content is never covered; expanded
+  state overlays on top instead of resizing the reserved gutter. Persist the
+  expanded/collapsed preference in `localStorage` under an app-specific key (e.g.
+  `media-department:mobile-nav-expanded` — not Protocol's key). Must close on: (a) an
+  outside pointer-down, and (b) tapping a nav link — both are required. Protocol
+  originally shipped without (b) and had to ship a follow-up fix once it shipped
+  (`fix: mobile nav drawer stays open after tapping a link`) — build it in from the
+  start here instead of repeating that bug.
+- **`ThemeToggle`** — `next-themes`' `useTheme()`, sun/moon `lucide-react` icon, a
+  mount-guard (`useHasMounted`-equivalent) to avoid an SSR/client hydration mismatch on
+  the icon, lives in the header, always visible.
+- **Wiring order in `app/providers.tsx`**: `ThemeProvider` → Redux `Provider` →
+  `AuthGuard` → `AppHeader` → `AppNav` → `MobileNavDrawer` → a content gutter wrapper →
+  page content → `Toaster`. Same order Protocol uses; don't reorder without a reason.
+
+## Mobile responsiveness — non-negotiable
+
+This app is used live, in the field (backstage, at a camera position, holding a phone)
+even more than Protocol is. Every screen must be verified at a narrow phone width, not
+just checked at desktop width and assumed to reflow correctly:
+- The nav pattern above (`AppNav` swaps for `MobileNavDrawer` below `sm`) is the backbone
+  of this — don't add a third, different nav pattern for any individual screen.
+- Forms, tables, and the media asset grid all need an explicit mobile layout (e.g. a
+  table becomes stacked cards below `sm`), not just horizontal scroll as the only
+  fallback.
+- Touch targets (buttons, nav links, status-update actions) sized generously — this is
+  the same "two taps, not a tiny icon in a dropdown" bar Protocol holds itself to.
 
 ## Design tokens — mandatory, no exceptions
 
@@ -50,9 +114,16 @@ Same discipline as the Protocol app, word for word:
 ## Theming — dark and light mode (mandatory)
 
 Same mechanism as Protocol: `next-themes`'s `ThemeProvider` with `attribute="class"`,
-default to system preference with an explicit toggle, no flash of wrong theme on load,
-verify every screen in both modes — especially the two status steppers (Service and
-Broadcast), the Live Now dashboard's status badges, and the media asset grid/lightbox.
+default to system preference with an explicit toggle (the header `ThemeToggle` described
+above), no flash of wrong theme on load, verify every screen in both modes — especially
+the two status steppers (Service and Broadcast), the Live Now dashboard's status badges,
+and the media asset grid/lightbox.
+
+Rose Red must stay legible and on-brand in both themes — same rule Protocol applied to
+its purple: use a lighter/brighter stop of the Rose Red scale (e.g. the 300 step) as
+`--primary` in dark mode rather than reusing the exact 600-step light-mode hex. Deep reds
+in particular can read as muddy/low-contrast on a dark background if this isn't done
+deliberately — check contrast on real dark-mode renders, not just in theory.
 
 ## Folder structure convention
 
