@@ -133,6 +133,32 @@ Same pattern as Protocol's backend, with three roles instead of Protocol's three
   add broadcasts → move each to Live/Ended → verify Service auto-rolls-up → verify
   logs written).
 
+## Swagger testing documentation — mandatory after every phase/API change
+
+Every module needs full `@nestjs/swagger` annotations (`@ApiTags`, `@ApiOperation`,
+`@ApiBody`/`@ApiProperty` on DTOs, `@ApiResponse` for success and error cases) — Swagger
+isn't optional polish here, it's the primary way the user manually verifies each piece of
+work (see the root `CLAUDE.md`'s "cycle" step 2, and [[user_role]] — same habit as
+protocol_dept_app, where the user tests independently via Postman/Swagger between
+sessions).
+
+After building or changing any endpoint, don't just say "done" — report, in the chat, a
+short test walkthrough:
+1. The Swagger UI URL (`http://localhost:4100/api/docs`) and which tag/section to open.
+2. A concrete example request body for each new/changed endpoint (not just "fill in the
+   fields" — give real sample values, e.g. a plausible `Service` payload).
+3. The expected response shape and status code, including the expected error case for
+   at least one invalid input (e.g. an out-of-order status transition should 400, not
+   200).
+4. For anything stateful across multiple endpoints (the whole point of the
+   Service/Broadcast status machines), the exact call order to exercise it end-to-end —
+   e.g. "create a Service → create two Broadcasts → PATCH the first to Live → PATCH the
+   second to Live → PATCH both to Ended → GET the Service and confirm status is now
+   Ended automatically."
+
+This applies to every PR, not just Phase 1 — a one-endpoint addition still gets a short
+version of this.
+
 ## Setup (once Phase 1 scaffolding exists)
 
 ```bash

@@ -108,14 +108,21 @@ feature/PR-XXX-short-kebab-description
 
 1. Build the module fully and verify it locally — tests pass, and where practical, a
    live smoke test against a running server.
-2. `git checkout main && git pull`.
-3. Create a branch named per the convention above.
-4. Commit the work with a clear, conventional message.
-5. Push the branch: `git push -u origin <branch-name>`.
-6. Open a pull request into `main` (`gh pr create --base main --title ... --body ...`).
-7. **Stop and ask the user to review and merge the PR on GitHub.** Do not merge it
+2. **Document how to test it in Swagger, every time, for every phase/API change.**
+   After any backend work — a new module, a new endpoint, a status-transition change —
+   report back with: the Swagger UI URL (`/api/docs`), which endpoint(s) to expand, an
+   example request body, the expected response/status code, and (for anything
+   stateful, like a status transition) the order to call things in to exercise the
+   flow end-to-end. This is required even for small additions, not just full phases —
+   see `backend/CLAUDE.md`'s "Swagger testing documentation" section.
+3. `git checkout main && git pull`.
+4. Create a branch named per the convention above.
+5. Commit the work with a clear, conventional message.
+6. Push the branch: `git push -u origin <branch-name>`.
+7. Open a pull request into `main` (`gh pr create --base main --title ... --body ...`).
+8. **Stop and ask the user to review and merge the PR on GitHub.** Do not merge it
    yourself, and do not start the next module until the user confirms it's merged.
-8. Once confirmed, `git checkout main && git pull` before starting the next branch.
+9. Once confirmed, `git checkout main && git pull` before starting the next branch.
 
 Never batch multiple unrelated modules into a single PR.
 
