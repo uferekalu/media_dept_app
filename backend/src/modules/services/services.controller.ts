@@ -1,8 +1,9 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
-import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
+import { UpdateServiceStatusDto } from './dto/update-service-status.dto';
 
 @ApiTags('services')
 @Controller('services')
@@ -19,6 +20,14 @@ export class ServicesController {
   @ApiOperation({ summary: 'List all services, most recent first' })
   findAll() {
     return this.servicesService.findAll();
+  }
+
+  // Declared before ':id' — Nest matches routes in registration order, so a literal
+  // segment must come first or it'd be swallowed as an :id param.
+  @Get('live-now')
+  @ApiOperation({ summary: 'List services currently active in the pipeline (past PLANNED, short of ARCHIVED) — powers the Live Now dashboard' })
+  findLiveNow() {
+    return this.servicesService.findLiveNow();
   }
 
   @Get(':id')
@@ -41,5 +50,13 @@ export class ServicesController {
   @ApiNotFoundResponse({ description: 'Service not found' })
   remove(@Param('id') id: string) {
     return this.servicesService.remove(id);
+  }
+
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Move a service to its next status — validated against the state machine, writes a StatusLog entry' })
+  @ApiBadRequestResponse({ description: 'The requested status is not a valid next step from the current status' })
+  @ApiNotFoundResponse({ description: 'Service not found' })
+  updateStatus(@Param('id') id: string, @Body() dto: UpdateServiceStatusDto) {
+    return this.servicesService.updateStatus(id, dto);
   }
 }
