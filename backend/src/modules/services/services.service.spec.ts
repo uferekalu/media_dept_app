@@ -1,12 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { Service } from './schemas/service.schema';
 import { ServiceStatus, ServiceType } from '../../common/enums';
+import { StatusLogsService } from '../status-logs/status-logs.service';
 
 describe('ServicesService', () => {
   let service: ServicesService;
+  let statusLogsService: { create: jest.Mock };
   let model: {
     create: jest.Mock;
     find: jest.Mock;
@@ -23,9 +25,14 @@ describe('ServicesService', () => {
       findByIdAndUpdate: jest.fn(),
       findByIdAndDelete: jest.fn(),
     };
+    statusLogsService = { create: jest.fn().mockResolvedValue(undefined) };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
-      providers: [ServicesService, { provide: getModelToken(Service.name), useValue: model }],
+      providers: [
+        ServicesService,
+        { provide: getModelToken(Service.name), useValue: model },
+        { provide: StatusLogsService, useValue: statusLogsService },
+      ],
     }).compile();
 
     service = moduleRef.get(ServicesService);
@@ -59,5 +66,58 @@ describe('ServicesService', () => {
     await expect(service.update('missing-id', { venue: 'New Venue' })).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+
+  describe('updateStatus', () => {
+    function mockCurrentStatus(status: ServiceStatus) {
+      model.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ status, save: jest.fn().mockResolvedValue(undefined) }),
+      });
+    }
+
+    it('allows a valid forward transition and writes a StatusLog entry', async () => {
+      mockCurrentStatus(ServiceStatus.PLANNED);
+
+      const result = await service.updateStatus('service-id', {
+        status: ServiceStatus.CREW_ASSIGNED,
+      });
+
+      expect(result.status).toBe(ServiceStatus.CREW_ASSIGNED);
+      expect(statusLogsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ entity_id: 'service-id', status: ServiceStatus.CREW_ASSIGNED }),
+      );
+    });
+
+    it('rejects skipping a step (PLANNED straight to LIVE)', async () => {
+      mockCurrentStatus(ServiceStatus.PLANNED);
+
+      await expect(
+        service.updateStatus('service-id', { status: ServiceStatus.LIVE }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(statusLogsService.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects any transition out of the terminal ARCHIVED status', async () => {
+      mockCurrentStatus(ServiceStatus.ARCHIVED);
+
+      await expect(
+        service.updateStatus('service-id', { status: ServiceStatus.PLANNED }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('findLiveNow', () => {
+    it('queries only the in-pipeline statuses, excluding PLANNED and ARCHIVED', async () => {
+      const execMock = jest.fn().mockResolvedValue([]);
+      const sortMock = jest.fn().mockReturnValue({ exec: execMock });
+      model.find.mockReturnValue({ sort: sortMock });
+
+      await service.findLiveNow();
+
+      const queryArg = model.find.mock.calls[0][0];
+      expect(queryArg.status.$in).not.toContain(ServiceStatus.PLANNED);
+      expect(queryArg.status.$in).not.toContain(ServiceStatus.ARCHIVED);
+      expect(queryArg.status.$in).toContain(ServiceStatus.LIVE);
+    });
   });
 });
