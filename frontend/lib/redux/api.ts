@@ -5,10 +5,15 @@ import type { MediaTeamMember } from '@/lib/types/media-team-member';
 import type { CrewAssignment } from '@/lib/types/crew-assignment';
 import type { Platform } from '@/lib/types/platform';
 import type { Broadcast } from '@/lib/types/broadcast';
+import type { Equipment } from '@/lib/types/equipment';
+import type { EquipmentCheckout } from '@/lib/types/equipment-checkout';
 import type {
   BroadcastStatus,
   CrewAssignmentRole,
   CrewAssignmentStatus,
+  EquipmentCategory,
+  EquipmentCondition,
+  EquipmentCurrentStatus,
   ServiceStatus,
   StatusLogEntityType,
 } from '@/lib/types/enums';
@@ -27,7 +32,16 @@ export const api = createApi({
   // tag-based invalidation. Paired with setupListeners(store.dispatch) in store.ts.
   refetchOnFocus: true,
   refetchOnReconnect: true,
-  tagTypes: ['Service', 'StatusLog', 'MediaTeamMember', 'CrewAssignment', 'Platform', 'Broadcast'],
+  tagTypes: [
+    'Service',
+    'StatusLog',
+    'MediaTeamMember',
+    'CrewAssignment',
+    'Platform',
+    'Broadcast',
+    'Equipment',
+    'EquipmentCheckout',
+  ],
   endpoints: (builder) => ({
     // Powers the Dashboard's "Live Now" view.
     getLiveNowServices: builder.query<Service[], void>({
@@ -219,6 +233,110 @@ export const api = createApi({
         { type: 'Broadcast', id: `service-${serviceId}` },
       ],
     }),
+
+    // Powers the Equipment Inventory screen.
+    getEquipment: builder.query<Equipment[], void>({
+      query: () => '/equipment',
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((e) => ({ type: 'Equipment' as const, id: e._id })),
+              { type: 'Equipment' as const, id: 'LIST' },
+            ]
+          : [{ type: 'Equipment' as const, id: 'LIST' }],
+    }),
+
+    createEquipment: builder.mutation<
+      Equipment,
+      { name: string; category: EquipmentCategory; serial_number?: string }
+    >({
+      query: (body) => ({ url: '/equipment', method: 'POST', body }),
+      invalidatesTags: [{ type: 'Equipment', id: 'LIST' }],
+    }),
+
+    // Covers both a plain details edit and marking something IN_REPAIR/condition
+    // change — Equipment has no separate guarded status endpoint (brief Section 3
+    // doesn't define a state machine for it).
+    updateEquipment: builder.mutation<
+      Equipment,
+      { id: string; condition?: EquipmentCondition; current_status?: EquipmentCurrentStatus }
+    >({
+      query: ({ id, ...body }) => ({ url: `/equipment/${id}`, method: 'PATCH', body }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Equipment', id },
+        { type: 'Equipment', id: 'LIST' },
+      ],
+    }),
+
+    deleteEquipment: builder.mutation<void, string>({
+      query: (id) => ({ url: `/equipment/${id}`, method: 'DELETE' }),
+      invalidatesTags: [{ type: 'Equipment', id: 'LIST' }],
+    }),
+
+    // Powers the Equipment Checkout Log screen.
+    getEquipmentCheckouts: builder.query<EquipmentCheckout[], void>({
+      query: () => '/equipment-checkouts',
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((c) => ({ type: 'EquipmentCheckout' as const, id: c._id })),
+              { type: 'EquipmentCheckout' as const, id: 'LIST' },
+            ]
+          : [{ type: 'EquipmentCheckout' as const, id: 'LIST' }],
+    }),
+
+    // Powers a per-item checkout history on the Inventory screen.
+    getEquipmentCheckoutsByEquipment: builder.query<EquipmentCheckout[], string>({
+      query: (equipmentId) => `/equipment/${equipmentId}/checkouts`,
+      providesTags: (result, _error, equipmentId) => [
+        { type: 'EquipmentCheckout' as const, id: `equipment-${equipmentId}` },
+        ...(result ?? []).map((c) => ({ type: 'EquipmentCheckout' as const, id: c._id })),
+      ],
+    }),
+
+    // Checking out equipment also flips its current_status to CHECKED_OUT
+    // server-side, so this invalidates the Equipment cache too, not just the checkout
+    // log's.
+    createEquipmentCheckout: builder.mutation<
+      EquipmentCheckout,
+      { equipment: string; service?: string; checked_out_to: string; expected_return_at: string; notes?: string }
+    >({
+      query: (body) => ({ url: '/equipment-checkouts', method: 'POST', body }),
+      invalidatesTags: (result) =>
+        result
+          ? [
+              { type: 'EquipmentCheckout', id: 'LIST' },
+              { type: 'EquipmentCheckout', id: `equipment-${result.equipment}` },
+              { type: 'Equipment', id: result.equipment },
+              { type: 'Equipment', id: 'LIST' },
+            ]
+          : [{ type: 'EquipmentCheckout', id: 'LIST' }],
+    }),
+
+    // Reverts the equipment back to AVAILABLE server-side — same cross-invalidation
+    // reasoning as createEquipmentCheckout above.
+    returnEquipmentCheckout: builder.mutation<EquipmentCheckout, { id: string; notes?: string }>({
+      query: ({ id, ...body }) => ({ url: `/equipment-checkouts/${id}/return`, method: 'PATCH', body }),
+      invalidatesTags: (result, _error, { id }) =>
+        result
+          ? [
+              { type: 'EquipmentCheckout', id },
+              { type: 'EquipmentCheckout', id: 'LIST' },
+              { type: 'EquipmentCheckout', id: `equipment-${result.equipment}` },
+              { type: 'Equipment', id: result.equipment },
+              { type: 'Equipment', id: 'LIST' },
+            ]
+          : [{ type: 'EquipmentCheckout', id }],
+    }),
+
+    deleteEquipmentCheckout: builder.mutation<void, { id: string; equipmentId: string }>({
+      query: ({ id }) => ({ url: `/equipment-checkouts/${id}`, method: 'DELETE' }),
+      invalidatesTags: (_result, _error, { id, equipmentId }) => [
+        { type: 'EquipmentCheckout', id },
+        { type: 'EquipmentCheckout', id: 'LIST' },
+        { type: 'EquipmentCheckout', id: `equipment-${equipmentId}` },
+      ],
+    }),
   }),
 });
 
@@ -240,4 +358,13 @@ export const {
   useCreateBroadcastMutation,
   useUpdateBroadcastStatusMutation,
   useDeleteBroadcastMutation,
+  useGetEquipmentQuery,
+  useCreateEquipmentMutation,
+  useUpdateEquipmentMutation,
+  useDeleteEquipmentMutation,
+  useGetEquipmentCheckoutsQuery,
+  useGetEquipmentCheckoutsByEquipmentQuery,
+  useCreateEquipmentCheckoutMutation,
+  useReturnEquipmentCheckoutMutation,
+  useDeleteEquipmentCheckoutMutation,
 } = api;

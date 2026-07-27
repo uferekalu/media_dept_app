@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronsLeft, ChevronsRight, LayoutDashboard, ListChecks } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, LayoutDashboard, ListChecks, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 const NAV_LINKS = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/my-assignments', label: 'My Assignments', icon: ListChecks },
+  { href: '/equipment', label: 'Equipment', icon: Package },
 ];
 
 const STORAGE_KEY = 'media-department:mobile-nav-expanded';

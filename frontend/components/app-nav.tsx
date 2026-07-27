@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 const NAV_LINKS = [
   { href: '/', label: 'Dashboard' },
   { href: '/my-assignments', label: 'My Assignments' },
+  { href: '/equipment', label: 'Equipment' },
 ];
 
 export function AppNav() {
