@@ -9,7 +9,7 @@ import { BroadcastsService } from '../broadcasts/broadcasts.service';
 
 describe('ServicesService', () => {
   let service: ServicesService;
-  let statusLogsService: { create: jest.Mock };
+  let statusLogsService: { create: jest.Mock; findForEntity: jest.Mock };
   let broadcastsService: { findByService: jest.Mock };
   let model: {
     create: jest.Mock;
@@ -27,7 +27,7 @@ describe('ServicesService', () => {
       findByIdAndUpdate: jest.fn(),
       findByIdAndDelete: jest.fn(),
     };
-    statusLogsService = { create: jest.fn().mockResolvedValue(undefined) };
+    statusLogsService = { create: jest.fn().mockResolvedValue(undefined), findForEntity: jest.fn() };
     broadcastsService = { findByService: jest.fn().mockResolvedValue([]) };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
@@ -154,6 +154,30 @@ describe('ServicesService', () => {
 
       expect(save).not.toHaveBeenCalled();
       expect(statusLogsService.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getMergedTimeline', () => {
+    it('merges the Service log with every Broadcast log and sorts most-recent-first', async () => {
+      model.findById.mockReturnValue({ exec: jest.fn().mockResolvedValue({ status: ServiceStatus.LIVE }) });
+      broadcastsService.findByService.mockResolvedValue([{ _id: 'broadcast-1' }, { _id: 'broadcast-2' }]);
+      statusLogsService.findForEntity.mockImplementation((entityType: string, entityId: string) => {
+        if (entityType === 'SERVICE') {
+          return Promise.resolve([{ status: 'LIVE', timestamp: '2026-08-16T08:00:00.000Z' }]);
+        }
+        if (entityId === 'broadcast-1') {
+          return Promise.resolve([{ status: 'LIVE', timestamp: '2026-08-16T07:59:00.000Z' }]);
+        }
+        return Promise.resolve([{ status: 'SCHEDULED', timestamp: '2026-08-16T06:00:00.000Z' }]);
+      });
+
+      const result = await service.getMergedTimeline('service-id');
+
+      expect(result).toHaveLength(3);
+      expect(result.map((r) => r.status)).toEqual(['LIVE', 'LIVE', 'SCHEDULED']);
+      expect(statusLogsService.findForEntity).toHaveBeenCalledWith('SERVICE', 'service-id');
+      expect(statusLogsService.findForEntity).toHaveBeenCalledWith('BROADCAST', 'broadcast-1');
+      expect(statusLogsService.findForEntity).toHaveBeenCalledWith('BROADCAST', 'broadcast-2');
     });
   });
 
