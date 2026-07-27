@@ -5,10 +5,12 @@ import { ServicesService } from './services.service';
 import { Service } from './schemas/service.schema';
 import { ServiceStatus, ServiceType } from '../../common/enums';
 import { StatusLogsService } from '../status-logs/status-logs.service';
+import { BroadcastsService } from '../broadcasts/broadcasts.service';
 
 describe('ServicesService', () => {
   let service: ServicesService;
   let statusLogsService: { create: jest.Mock };
+  let broadcastsService: { findByService: jest.Mock };
   let model: {
     create: jest.Mock;
     find: jest.Mock;
@@ -26,12 +28,14 @@ describe('ServicesService', () => {
       findByIdAndDelete: jest.fn(),
     };
     statusLogsService = { create: jest.fn().mockResolvedValue(undefined) };
+    broadcastsService = { findByService: jest.fn().mockResolvedValue([]) };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
       providers: [
         ServicesService,
         { provide: getModelToken(Service.name), useValue: model },
         { provide: StatusLogsService, useValue: statusLogsService },
+        { provide: BroadcastsService, useValue: broadcastsService },
       ],
     }).compile();
 
@@ -103,6 +107,53 @@ describe('ServicesService', () => {
       await expect(
         service.updateStatus('service-id', { status: ServiceStatus.PLANNED }),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects a manual ENDED transition while a broadcast is still LIVE', async () => {
+      mockCurrentStatus(ServiceStatus.LIVE);
+      broadcastsService.findByService.mockResolvedValue([{ status: 'LIVE' }]);
+
+      await expect(
+        service.updateStatus('service-id', { status: ServiceStatus.ENDED }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(statusLogsService.create).not.toHaveBeenCalled();
+    });
+
+    it('allows a manual ENDED transition once no broadcast is still LIVE', async () => {
+      mockCurrentStatus(ServiceStatus.LIVE);
+      broadcastsService.findByService.mockResolvedValue([{ status: 'ENDED' }]);
+
+      const result = await service.updateStatus('service-id', { status: ServiceStatus.ENDED });
+
+      expect(result.status).toBe(ServiceStatus.ENDED);
+    });
+  });
+
+  describe('applyRollupStatus', () => {
+    it('writes the status and a StatusLog entry when the status actually changes', async () => {
+      const save = jest.fn().mockResolvedValue(undefined);
+      model.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ status: ServiceStatus.PLANNED, save }),
+      });
+
+      await service.applyRollupStatus('service-id', ServiceStatus.LIVE, 'Auto-advanced');
+
+      expect(save).toHaveBeenCalled();
+      expect(statusLogsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ entity_id: 'service-id', status: ServiceStatus.LIVE, notes: 'Auto-advanced' }),
+      );
+    });
+
+    it('is a no-op when the service is already at the target status', async () => {
+      const save = jest.fn().mockResolvedValue(undefined);
+      model.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ status: ServiceStatus.LIVE, save }),
+      });
+
+      await service.applyRollupStatus('service-id', ServiceStatus.LIVE, 'Auto-advanced');
+
+      expect(save).not.toHaveBeenCalled();
+      expect(statusLogsService.create).not.toHaveBeenCalled();
     });
   });
 
