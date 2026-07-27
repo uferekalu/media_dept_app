@@ -183,6 +183,49 @@ export enum PlatformName {
   IN_HOUSE_TV_FEED = 'IN_HOUSE_TV_FEED',
 }
 
+export const PLATFORM_NAME_LABELS: Record<PlatformName, string> = {
+  [PlatformName.YOUTUBE]: 'YouTube',
+  [PlatformName.FACEBOOK]: 'Facebook',
+  [PlatformName.IN_HOUSE_TV_FEED]: 'In-House TV Feed',
+};
+
+export enum BroadcastStatus {
+  SCHEDULED = 'SCHEDULED',
+  LIVE = 'LIVE',
+  ENDED = 'ENDED',
+  PUBLISHED = 'PUBLISHED',
+}
+
+export const VALID_BROADCAST_STATUS_TRANSITIONS: Record<BroadcastStatus, BroadcastStatus[]> = {
+  [BroadcastStatus.SCHEDULED]: [BroadcastStatus.LIVE],
+  [BroadcastStatus.LIVE]: [BroadcastStatus.ENDED],
+  [BroadcastStatus.ENDED]: [BroadcastStatus.PUBLISHED],
+  [BroadcastStatus.PUBLISHED]: [],
+};
+
+export const BROADCAST_STATUS_LABELS: Record<BroadcastStatus, string> = {
+  [BroadcastStatus.SCHEDULED]: 'Scheduled',
+  [BroadcastStatus.LIVE]: 'Live',
+  [BroadcastStatus.ENDED]: 'Ended',
+  [BroadcastStatus.PUBLISHED]: 'Published',
+};
+
+export const BROADCAST_STATUS_ACTION_LABELS: Record<BroadcastStatus, string> = {
+  [BroadcastStatus.SCHEDULED]: 'Go Live',
+  [BroadcastStatus.LIVE]: 'Mark Ended',
+  [BroadcastStatus.ENDED]: 'Mark Published',
+  [BroadcastStatus.PUBLISHED]: 'Published',
+};
+
+// Reuses the same six-bucket status-color token set as Service/CrewAssignment
+// (frontend/CLAUDE.md's Brand section) rather than a fourth parallel palette.
+export const BROADCAST_STATUS_BADGE_VARIANT: Record<BroadcastStatus, StatusColorBucket> = {
+  [BroadcastStatus.SCHEDULED]: 'pending',
+  [BroadcastStatus.LIVE]: 'live',
+  [BroadcastStatus.ENDED]: 'wrap-up',
+  [BroadcastStatus.PUBLISHED]: 'complete',
+};
+
 export enum StatusLogEntityType {
   SERVICE = 'SERVICE',
   BROADCAST = 'BROADCAST',

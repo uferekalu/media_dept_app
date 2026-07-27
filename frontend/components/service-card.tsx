@@ -3,11 +3,16 @@
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ServiceStatusStepper } from '@/components/service-status-stepper';
-import { useUpdateServiceStatusMutation } from '@/lib/redux/api';
+import { useGetBroadcastsByServiceQuery, useGetPlatformsQuery, useUpdateServiceStatusMutation } from '@/lib/redux/api';
 import {
+  BROADCAST_STATUS_BADGE_VARIANT,
+  BROADCAST_STATUS_LABELS,
+  PLATFORM_NAME_LABELS,
   SERVICE_STATUS_ACTION_LABELS,
   SERVICE_TYPE_LABELS,
   VALID_SERVICE_STATUS_TRANSITIONS,
@@ -17,8 +22,36 @@ import type { Service } from '@/lib/types/service';
 // Card per service on the Dashboard's "Live Now" view — status stepper (genuinely
 // visual, not a bare badge, per frontend/CLAUDE.md) plus a big, unambiguous
 // "advance to the next status" action, mirroring protocol_dept_app's
-// invitation-card.tsx pattern. No per-platform broadcast breakdown yet (Phase 4) —
-// that slots in here later.
+// invitation-card.tsx pattern.
+function PlatformStatusBadges({ serviceId }: { serviceId: string }) {
+  const { data: broadcasts, isLoading: broadcastsLoading } = useGetBroadcastsByServiceQuery(serviceId);
+  const { data: platforms, isLoading: platformsLoading } = useGetPlatformsQuery();
+
+  if (broadcastsLoading || platformsLoading) {
+    return <Skeleton className="h-6 w-40" />;
+  }
+
+  const enabledPlatforms = (platforms ?? []).filter((p) => p.enabled);
+  if (enabledPlatforms.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {enabledPlatforms.map((platform) => {
+        const broadcast = broadcasts?.find((b) => b.platform === platform._id);
+        return (
+          <Badge
+            key={platform._id}
+            variant={broadcast ? BROADCAST_STATUS_BADGE_VARIANT[broadcast.status] : 'archived'}
+            size="sm"
+          >
+            {PLATFORM_NAME_LABELS[platform.name]}
+            {broadcast ? `: ${BROADCAST_STATUS_LABELS[broadcast.status]}` : ': Not scheduled'}
+          </Badge>
+        );
+      })}
+    </div>
+  );
+}
 export function ServiceCard({ service }: { service: Service }) {
   const [updateStatus, { isLoading: isUpdating }] = useUpdateServiceStatusMutation();
   const nextStatuses = VALID_SERVICE_STATUS_TRANSITIONS[service.status];
@@ -53,6 +86,8 @@ export function ServiceCard({ service }: { service: Service }) {
 
         <ServiceStatusStepper status={service.status} />
 
+        <PlatformStatusBadges serviceId={service._id} />
+
         {nextStatuses.length > 0 ? (
           // Full-width, real touch target (h-11 = 44px) — per frontend/CLAUDE.md's
           // "big, unambiguous primary actions" and mobile-first status-update UX.
@@ -80,6 +115,12 @@ export function ServiceCard({ service }: { service: Service }) {
             className="text-body-sm text-primary hover:underline"
           >
             Manage crew
+          </Link>
+          <Link
+            href={`/services/${service._id}/broadcasts`}
+            className="text-body-sm text-primary hover:underline"
+          >
+            Manage broadcasts
           </Link>
         </div>
       </CardContent>
