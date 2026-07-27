@@ -54,6 +54,32 @@ export enum PlatformName {
   IN_HOUSE_TV_FEED = 'IN_HOUSE_TV_FEED',
 }
 
+export enum CrewAssignmentRole {
+  DIRECTOR_SWITCHER = 'DIRECTOR_SWITCHER',
+  CAMERA_1 = 'CAMERA_1',
+  CAMERA_2 = 'CAMERA_2',
+  CAMERA_3 = 'CAMERA_3',
+  AUDIO = 'AUDIO',
+  STREAMING_ENGINEER = 'STREAMING_ENGINEER',
+  GRAPHICS_OPERATOR = 'GRAPHICS_OPERATOR',
+  PHOTOGRAPHER = 'PHOTOGRAPHER',
+}
+
+export enum CrewAssignmentStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  COMPLETED = 'COMPLETED',
+}
+
+export const VALID_CREW_ASSIGNMENT_STATUS_TRANSITIONS: Record<
+  CrewAssignmentStatus,
+  CrewAssignmentStatus[]
+> = {
+  [CrewAssignmentStatus.PENDING]: [CrewAssignmentStatus.CONFIRMED],
+  [CrewAssignmentStatus.CONFIRMED]: [CrewAssignmentStatus.COMPLETED],
+  [CrewAssignmentStatus.COMPLETED]: [],
+};
+
 // Polymorphic StatusLog target — BROADCAST isn't written to until Phase 4, but the enum
 // is defined now so the StatusLog schema's entity_type field has its full shape from
 // Phase 1 (same reasoning as Protocol's ProtocolMember password field arriving before
