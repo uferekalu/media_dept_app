@@ -1,0 +1,300 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design tokens — single source of truth (frontend/CLAUDE.md).
+ * Nothing outside this file should contain a raw color/px value; every visual
+ * property resolves to a named token here, referenced everywhere via Tailwind
+ * utility classes or var(--token-name).
+ *
+ * Brand: Rose Red (#C0203F) + white — chosen for the Media Department app
+ * (protocol_dept_app's sibling; that app uses Episcopal Violet, this one is
+ * deliberately its own identity). Full 50-950 scale below; 600 is the base hue.
+ * Neutrals carry a very slight rose hue bias (oklch hue ~20) rather than a
+ * pure, unrelated gray — same technique protocol_dept_app uses with its violet.
+ */
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: var(--font-sans);
+
+    /* Brand rose red scale — see :root for the actual values. */
+    --color-primary-50: var(--primary-50);
+    --color-primary-100: var(--primary-100);
+    --color-primary-200: var(--primary-200);
+    --color-primary-300: var(--primary-300);
+    --color-primary-400: var(--primary-400);
+    --color-primary-500: var(--primary-500);
+    --color-primary-600: var(--primary-600);
+    --color-primary-700: var(--primary-700);
+    --color-primary-800: var(--primary-800);
+    --color-primary-900: var(--primary-900);
+    --color-primary-950: var(--primary-950);
+
+    /* Status colors — semantic, deliberately independent of the brand hue.
+       Six buckets covering the Service pipeline's 8 statuses (brief Section 3):
+       PLANNED->pending, CREW_ASSIGNED/EQUIPMENT_READY->in-progress, LIVE->live,
+       ENDED/RECORDING_PROCESSING->wrap-up, PUBLISHED->complete, ARCHIVED->archived. */
+    --color-status-pending: var(--status-pending);
+    --color-status-pending-foreground: var(--status-pending-foreground);
+    --color-status-in-progress: var(--status-in-progress);
+    --color-status-in-progress-foreground: var(--status-in-progress-foreground);
+    --color-status-live: var(--status-live);
+    --color-status-live-foreground: var(--status-live-foreground);
+    --color-status-wrap-up: var(--status-wrap-up);
+    --color-status-wrap-up-foreground: var(--status-wrap-up-foreground);
+    --color-status-complete: var(--status-complete);
+    --color-status-complete-foreground: var(--status-complete-foreground);
+    --color-status-archived: var(--status-archived);
+    --color-status-archived-foreground: var(--status-archived-foreground);
+
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+    /* Purpose-named alias, per the "someone reading the token file alone should
+       understand the system" rule — same value as --radius-lg, one source. */
+    --radius-card: var(--radius-lg);
+}
+
+:root {
+    /* Brand rose red scale. 600 is the picked base hue (#C0203F); the rest is a
+       standard Tailwind-style ramp built around it. */
+    --primary-50: #FDF1F3;
+    --primary-100: #FBE0E5;
+    --primary-200: #F5C2CB;
+    --primary-300: #E994A3;
+    --primary-400: #DC6577;
+    --primary-500: #CB3850;
+    --primary-600: #C0203F;
+    --primary-700: #93172F;
+    --primary-800: #711224;
+    --primary-900: #520D1A;
+    --primary-950: #300810;
+
+    --background: oklch(1 0.002 20);
+    --foreground: oklch(0.17 0.02 20);
+    --card: oklch(1 0.002 20);
+    --card-foreground: oklch(0.17 0.02 20);
+    --popover: oklch(1 0.002 20);
+    --popover-foreground: oklch(0.17 0.02 20);
+    --primary: var(--primary-600);
+    --primary-foreground: oklch(0.99 0 0);
+    --secondary: oklch(0.96 0.006 20);
+    --secondary-foreground: oklch(0.22 0.02 20);
+    --muted: oklch(0.96 0.006 20);
+    --muted-foreground: oklch(0.52 0.02 20);
+    --accent: oklch(0.95 0.01 20);
+    --accent-foreground: oklch(0.22 0.02 20);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.9 0.006 20);
+    --input: oklch(0.9 0.006 20);
+    --ring: var(--primary-600);
+
+    /* Status colors — light mode. */
+    --status-pending: #F1ECEE;
+    --status-pending-foreground: #5C4F53;
+    --status-in-progress: #FCEFD9;
+    --status-in-progress-foreground: #8A5A12;
+    /* Solid fill, not a soft tint — LIVE is the one status that should visually
+       pop above the others, matching the real-world "LIVE" broadcast convention. */
+    --status-live: #C0203F;
+    --status-live-foreground: #FFFFFF;
+    --status-wrap-up: #E3EEFB;
+    --status-wrap-up-foreground: #1F5B99;
+    --status-complete: #E1F3E7;
+    --status-complete-foreground: #1F7A45;
+    --status-archived: #ECEAEA;
+    --status-archived-foreground: #5C5C5C;
+
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: var(--primary-600);
+    --sidebar-primary-foreground: oklch(0.99 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: var(--primary-600);
+
+    /* Typography — a small, fixed set of named text styles, composed below via
+       @utility. Apply these by role (text-heading-lg, text-body, ...), never
+       ad hoc text-[Npx] font-[Nw] combinations. */
+    --text-heading-lg-size: 1.75rem;
+    --text-heading-lg-weight: 600;
+    --text-heading-lg-leading: 1.2;
+
+    --text-heading-md-size: 1.25rem;
+    --text-heading-md-weight: 600;
+    --text-heading-md-leading: 1.3;
+
+    --text-body-size: 0.9375rem;
+    --text-body-weight: 400;
+    --text-body-leading: 1.55;
+
+    --text-body-sm-size: 0.8125rem;
+    --text-body-sm-weight: 400;
+    --text-body-sm-leading: 1.5;
+
+    --text-label-size: 0.75rem;
+    --text-label-weight: 600;
+    --text-label-leading: 1.4;
+    --text-label-tracking: 0.02em;
+
+    --text-caption-size: 0.6875rem;
+    --text-caption-weight: 500;
+    --text-caption-leading: 1.4;
+}
+
+.dark {
+    /* Dark mode uses a lighter rose stop (300) for legibility against a dark
+       ground, per frontend/CLAUDE.md — never the same hex reused for both
+       themes. */
+    --background: oklch(0.16 0.012 20);
+    --foreground: oklch(0.96 0.006 20);
+    --card: oklch(0.2 0.014 20);
+    --card-foreground: oklch(0.96 0.006 20);
+    --popover: oklch(0.2 0.014 20);
+    --popover-foreground: oklch(0.96 0.006 20);
+    --primary: var(--primary-300);
+    --primary-foreground: var(--primary-950);
+    --secondary: oklch(0.27 0.016 20);
+    --secondary-foreground: oklch(0.96 0.006 20);
+    --muted: oklch(0.27 0.016 20);
+    --muted-foreground: oklch(0.68 0.014 20);
+    --accent: oklch(0.27 0.016 20);
+    --accent-foreground: oklch(0.96 0.006 20);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0.02 20 / 10%);
+    --input: oklch(1 0.02 20 / 15%);
+    --ring: var(--primary-300);
+
+    /* Status colors — dark mode. */
+    --status-pending: #2A2528;
+    --status-pending-foreground: #B8A9AE;
+    --status-in-progress: #3A2E14;
+    --status-in-progress-foreground: #E3A94B;
+    --status-live: #A81A36;
+    --status-live-foreground: #FFFFFF;
+    --status-wrap-up: #16283A;
+    --status-wrap-up-foreground: #6FA8DC;
+    --status-complete: #163825;
+    --status-complete-foreground: #5BC98A;
+    --status-archived: #262626;
+    --status-archived-foreground: #9A9A9A;
+
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: var(--primary-300);
+    --sidebar-primary-foreground: var(--primary-950);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: var(--primary-300);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground scrollbar-hidden;
+    }
+  html {
+    @apply font-sans scrollbar-hidden;
+    }
+}
+
+/* Named typography utilities — composed from the tokens above. Apply by role,
+   not by inventing size/weight combinations per screen. */
+@utility text-heading-lg {
+  font-size: var(--text-heading-lg-size);
+  font-weight: var(--text-heading-lg-weight);
+  line-height: var(--text-heading-lg-leading);
+  text-wrap: balance;
+}
+@utility text-heading-md {
+  font-size: var(--text-heading-md-size);
+  font-weight: var(--text-heading-md-weight);
+  line-height: var(--text-heading-md-leading);
+}
+@utility text-body {
+  font-size: var(--text-body-size);
+  font-weight: var(--text-body-weight);
+  line-height: var(--text-body-leading);
+}
+@utility text-body-sm {
+  font-size: var(--text-body-sm-size);
+  font-weight: var(--text-body-sm-weight);
+  line-height: var(--text-body-sm-leading);
+}
+@utility text-label {
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  line-height: var(--text-label-leading);
+  letter-spacing: var(--text-label-tracking);
+  text-transform: uppercase;
+}
+@utility text-caption {
+  font-size: var(--text-caption-size);
+  font-weight: var(--text-caption-weight);
+  line-height: var(--text-caption-leading);
+}
+
+/* Hides the OS-default scrollbar track/thumb on an internally-scrolling container
+   without disabling scrolling itself — content still scrolls via touch, trackpad,
+   wheel, or keyboard. */
+@utility scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
