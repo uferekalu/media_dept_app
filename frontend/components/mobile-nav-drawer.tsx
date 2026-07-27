@@ -3,14 +3,17 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronsLeft, ChevronsRight, LayoutDashboard } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, LayoutDashboard, ListChecks } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 // Mirrors app-nav.tsx's link list — kept as a separate array (not shared) since the
 // two components' link shape differs (this one needs an icon per link, the desktop
 // tab row doesn't).
-const NAV_LINKS = [{ href: '/', label: 'Dashboard', icon: LayoutDashboard }];
+const NAV_LINKS = [
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/my-assignments', label: 'My Assignments', icon: ListChecks },
+];
 
 const STORAGE_KEY = 'media-department:mobile-nav-expanded';
 

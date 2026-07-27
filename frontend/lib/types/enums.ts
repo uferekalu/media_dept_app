@@ -108,6 +108,75 @@ export const SERVICE_STATUS_COLOR: Record<ServiceStatus, StatusColorBucket> = {
   [ServiceStatus.ARCHIVED]: 'archived',
 };
 
+export enum CrewAssignmentRole {
+  DIRECTOR_SWITCHER = 'DIRECTOR_SWITCHER',
+  CAMERA_1 = 'CAMERA_1',
+  CAMERA_2 = 'CAMERA_2',
+  CAMERA_3 = 'CAMERA_3',
+  AUDIO = 'AUDIO',
+  STREAMING_ENGINEER = 'STREAMING_ENGINEER',
+  GRAPHICS_OPERATOR = 'GRAPHICS_OPERATOR',
+  PHOTOGRAPHER = 'PHOTOGRAPHER',
+}
+
+// Fixed order the Crew Assignment Board renders its role slots in.
+export const CREW_ASSIGNMENT_ROLE_ORDER: CrewAssignmentRole[] = [
+  CrewAssignmentRole.DIRECTOR_SWITCHER,
+  CrewAssignmentRole.CAMERA_1,
+  CrewAssignmentRole.CAMERA_2,
+  CrewAssignmentRole.CAMERA_3,
+  CrewAssignmentRole.AUDIO,
+  CrewAssignmentRole.STREAMING_ENGINEER,
+  CrewAssignmentRole.GRAPHICS_OPERATOR,
+  CrewAssignmentRole.PHOTOGRAPHER,
+];
+
+export const CREW_ASSIGNMENT_ROLE_LABELS: Record<CrewAssignmentRole, string> = {
+  [CrewAssignmentRole.DIRECTOR_SWITCHER]: 'Director / Switcher',
+  [CrewAssignmentRole.CAMERA_1]: 'Camera 1',
+  [CrewAssignmentRole.CAMERA_2]: 'Camera 2',
+  [CrewAssignmentRole.CAMERA_3]: 'Camera 3',
+  [CrewAssignmentRole.AUDIO]: 'Audio',
+  [CrewAssignmentRole.STREAMING_ENGINEER]: 'Streaming Engineer',
+  [CrewAssignmentRole.GRAPHICS_OPERATOR]: 'Graphics / ProPresenter',
+  [CrewAssignmentRole.PHOTOGRAPHER]: 'Photographer',
+};
+
+export enum CrewAssignmentStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  COMPLETED = 'COMPLETED',
+}
+
+export const VALID_CREW_ASSIGNMENT_STATUS_TRANSITIONS: Record<
+  CrewAssignmentStatus,
+  CrewAssignmentStatus[]
+> = {
+  [CrewAssignmentStatus.PENDING]: [CrewAssignmentStatus.CONFIRMED],
+  [CrewAssignmentStatus.CONFIRMED]: [CrewAssignmentStatus.COMPLETED],
+  [CrewAssignmentStatus.COMPLETED]: [],
+};
+
+export const CREW_ASSIGNMENT_STATUS_LABELS: Record<CrewAssignmentStatus, string> = {
+  [CrewAssignmentStatus.PENDING]: 'Pending',
+  [CrewAssignmentStatus.CONFIRMED]: 'Confirmed',
+  [CrewAssignmentStatus.COMPLETED]: 'Completed',
+};
+
+export const CREW_ASSIGNMENT_STATUS_ACTION_LABELS: Record<CrewAssignmentStatus, string> = {
+  [CrewAssignmentStatus.PENDING]: 'Confirm',
+  [CrewAssignmentStatus.CONFIRMED]: 'Mark Completed',
+  [CrewAssignmentStatus.COMPLETED]: 'Completed',
+};
+
+// Reuses the same six-bucket status-color token set as Service (frontend/CLAUDE.md's
+// Brand section) rather than inventing a parallel one for a three-status entity.
+export const CREW_ASSIGNMENT_STATUS_BADGE_VARIANT: Record<CrewAssignmentStatus, StatusColorBucket> = {
+  [CrewAssignmentStatus.PENDING]: 'pending',
+  [CrewAssignmentStatus.CONFIRMED]: 'in-progress',
+  [CrewAssignmentStatus.COMPLETED]: 'complete',
+};
+
 export enum PlatformName {
   YOUTUBE = 'YOUTUBE',
   FACEBOOK = 'FACEBOOK',
