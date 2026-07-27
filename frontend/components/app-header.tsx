@@ -1,10 +1,10 @@
 import { Radio } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { ActingAsPicker } from '@/components/acting-as-picker';
 
-// Persistent top nav — required home for the theme toggle per frontend/CLAUDE.md.
-// UserMenu (identity display) lands in Phase 7 once auth exists, same as
-// protocol_dept_app added its own UserMenu here in its Phase 5 — until then this
-// header is unauthenticated and shown to everyone.
+// Persistent top nav — required home for the theme toggle per frontend/CLAUDE.md, and
+// for the "Acting as" auth stand-in (see acting-as-picker.tsx) until Phase 7 replaces
+// it with a real UserMenu, same as protocol_dept_app's own Phase 5 did.
 //
 // No church/department logo asset has been supplied yet — the Radio glyph is a
 // placeholder brand mark, not a final logo; swap for a real image (see
@@ -27,6 +27,7 @@ export function AppHeader() {
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <ActingAsPicker />
           <ThemeToggle />
         </div>
       </div>

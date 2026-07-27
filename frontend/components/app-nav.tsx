@@ -9,7 +9,10 @@ import { cn } from '@/lib/utils';
 // instead. Grows as each phase adds a screen — no role-based filtering yet since
 // auth doesn't exist until Phase 7 (compare protocol_dept_app's `elevatedOnly` links,
 // which land here the same way once roles exist).
-const NAV_LINKS = [{ href: '/', label: 'Dashboard' }];
+const NAV_LINKS = [
+  { href: '/', label: 'Dashboard' },
+  { href: '/my-assignments', label: 'My Assignments' },
+];
 
 export function AppNav() {
   const pathname = usePathname();

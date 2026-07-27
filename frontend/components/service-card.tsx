@@ -17,8 +17,8 @@ import type { Service } from '@/lib/types/service';
 // Card per service on the Dashboard's "Live Now" view — status stepper (genuinely
 // visual, not a bare badge, per frontend/CLAUDE.md) plus a big, unambiguous
 // "advance to the next status" action, mirroring protocol_dept_app's
-// invitation-card.tsx pattern. No assignment/crew info yet (Phase 3) and no
-// per-platform broadcast breakdown yet (Phase 4) — those slot in here later.
+// invitation-card.tsx pattern. No per-platform broadcast breakdown yet (Phase 4) —
+// that slots in here later.
 export function ServiceCard({ service }: { service: Service }) {
   const [updateStatus, { isLoading: isUpdating }] = useUpdateServiceStatusMutation();
   const nextStatuses = VALID_SERVICE_STATUS_TRANSITIONS[service.status];
@@ -68,12 +68,20 @@ export function ServiceCard({ service }: { service: Service }) {
           <p className="text-caption text-muted-foreground">Fully archived.</p>
         )}
 
-        <Link
-          href={`/services/${service._id}/timeline`}
-          className="text-body-sm text-primary hover:underline"
-        >
-          View timeline
-        </Link>
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          <Link
+            href={`/services/${service._id}/timeline`}
+            className="text-body-sm text-primary hover:underline"
+          >
+            View timeline
+          </Link>
+          <Link
+            href={`/services/${service._id}/crew`}
+            className="text-body-sm text-primary hover:underline"
+          >
+            Manage crew
+          </Link>
+        </div>
       </CardContent>
     </Card>
   );
