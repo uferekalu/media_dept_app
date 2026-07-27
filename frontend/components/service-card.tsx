@@ -60,7 +60,7 @@ export function ServiceCard({ service }: { service: Service }) {
             size="lg"
             onClick={() => handleAdvance(nextStatuses[0])}
             disabled={isUpdating}
-            className="h-14 text-body font-semibold"
+            className="h-16 text-heading-md"
           >
             {SERVICE_STATUS_ACTION_LABELS[service.status]}
           </Button>

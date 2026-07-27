@@ -52,7 +52,7 @@ export function CrewAssignmentStatusActions({
           variant={next === 'COMPLETED' ? 'default' : 'outline'}
           onClick={() => handleAdvance(next)}
           disabled={isLoading}
-          className={size === 'lg' ? 'h-14 flex-1 text-body font-semibold' : ''}
+          className={size === 'lg' ? 'h-16 flex-1 text-heading-md' : ''}
         >
           {CREW_ASSIGNMENT_STATUS_ACTION_LABELS[next]}
         </Button>
