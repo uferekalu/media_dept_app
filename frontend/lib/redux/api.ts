@@ -3,7 +3,10 @@ import type { Service } from '@/lib/types/service';
 import type { StatusLog } from '@/lib/types/status-log';
 import type { MediaTeamMember } from '@/lib/types/media-team-member';
 import type { CrewAssignment } from '@/lib/types/crew-assignment';
+import type { Platform } from '@/lib/types/platform';
+import type { Broadcast } from '@/lib/types/broadcast';
 import type {
+  BroadcastStatus,
   CrewAssignmentRole,
   CrewAssignmentStatus,
   ServiceStatus,
@@ -24,7 +27,7 @@ export const api = createApi({
   // tag-based invalidation. Paired with setupListeners(store.dispatch) in store.ts.
   refetchOnFocus: true,
   refetchOnReconnect: true,
-  tagTypes: ['Service', 'StatusLog', 'MediaTeamMember', 'CrewAssignment'],
+  tagTypes: ['Service', 'StatusLog', 'MediaTeamMember', 'CrewAssignment', 'Platform', 'Broadcast'],
   endpoints: (builder) => ({
     // Powers the Dashboard's "Live Now" view.
     getLiveNowServices: builder.query<Service[], void>({
@@ -57,12 +60,20 @@ export const api = createApi({
       providesTags: (_result, _error, id) => [{ type: 'Service', id }],
     }),
 
-    // Powers the Status Timeline screen — entityType is always 'SERVICE' until
-    // Phase 4 adds Broadcast, but the arg shape stays generic to match the backend's
-    // polymorphic GET /status-logs/:entityType/:entityId.
+    // Generic per-entity log — kept for any screen that only needs one entity's
+    // history (e.g. a single Broadcast's own timeline, should that ever get its own
+    // screen). The Status Timeline screen uses getServiceTimeline below instead, since
+    // it needs the Service's log merged with every one of its Broadcasts'.
     getStatusLog: builder.query<StatusLog[], { entityType: StatusLogEntityType; entityId: string }>({
       query: ({ entityType, entityId }) => `/status-logs/${entityType}/${entityId}`,
       providesTags: (_result, _error, { entityId }) => [{ type: 'StatusLog', id: entityId }],
+    }),
+
+    // Powers the Status Timeline screen — the Service's own log plus every one of its
+    // Broadcasts' logs, merged and sorted server-side (GET /services/:id/timeline).
+    getServiceTimeline: builder.query<StatusLog[], string>({
+      query: (serviceId) => `/services/${serviceId}/timeline`,
+      providesTags: (_result, _error, serviceId) => [{ type: 'StatusLog', id: serviceId }],
     }),
 
     // Guarded PATCH — the backend rejects anything not in
@@ -151,6 +162,63 @@ export const api = createApi({
         { type: 'CrewAssignment', id: `member-${mediaTeamMemberId}` },
       ],
     }),
+
+    // The small, mostly-fixed platform list (brief Section 2) — powers the Broadcast
+    // management screen and the Dashboard's per-platform status badges.
+    getPlatforms: builder.query<Platform[], void>({
+      query: () => '/platforms',
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((p) => ({ type: 'Platform' as const, id: p._id })),
+              { type: 'Platform' as const, id: 'LIST' },
+            ]
+          : [{ type: 'Platform' as const, id: 'LIST' }],
+    }),
+
+    // Powers the Broadcast management screen and the Dashboard's per-platform
+    // breakdown (brief Section 4B's "Live Now" dashboard).
+    getBroadcastsByService: builder.query<Broadcast[], string>({
+      query: (serviceId) => `/services/${serviceId}/broadcasts`,
+      providesTags: (result, _error, serviceId) => [
+        { type: 'Broadcast' as const, id: `service-${serviceId}` },
+        ...(result ?? []).map((b) => ({ type: 'Broadcast' as const, id: b._id })),
+      ],
+    }),
+
+    createBroadcast: builder.mutation<
+      Broadcast,
+      { service: string; platform: string; scheduled_start_time: string }
+    >({
+      query: (body) => ({ url: '/broadcasts', method: 'POST', body }),
+      invalidatesTags: (result) =>
+        result ? [{ type: 'Broadcast', id: `service-${result.service}` }] : [],
+    }),
+
+    // Guarded SCHEDULED -> LIVE -> ENDED -> PUBLISHED transition — may also trigger the
+    // backend's Service rollup, so this invalidates the Service's own status/live-now
+    // tags and its merged timeline too, not just the Broadcast's own cache entry.
+    updateBroadcastStatus: builder.mutation<Broadcast, { id: string; status: BroadcastStatus; notes?: string }>({
+      query: ({ id, ...body }) => ({ url: `/broadcasts/${id}/status`, method: 'PATCH', body }),
+      invalidatesTags: (result, _error, { id }) =>
+        result
+          ? [
+              { type: 'Broadcast', id },
+              { type: 'Broadcast', id: `service-${result.service}` },
+              { type: 'Service', id: result.service },
+              { type: 'Service', id: 'LIVE_NOW' },
+              { type: 'StatusLog', id: result.service },
+            ]
+          : [{ type: 'Broadcast', id }],
+    }),
+
+    deleteBroadcast: builder.mutation<void, { id: string; serviceId: string }>({
+      query: ({ id }) => ({ url: `/broadcasts/${id}`, method: 'DELETE' }),
+      invalidatesTags: (_result, _error, { id, serviceId }) => [
+        { type: 'Broadcast', id },
+        { type: 'Broadcast', id: `service-${serviceId}` },
+      ],
+    }),
   }),
 });
 
@@ -159,6 +227,7 @@ export const {
   useGetServicesQuery,
   useGetServiceQuery,
   useGetStatusLogQuery,
+  useGetServiceTimelineQuery,
   useUpdateServiceStatusMutation,
   useGetMediaTeamMembersQuery,
   useGetCrewAssignmentsByServiceQuery,
@@ -166,4 +235,9 @@ export const {
   useCreateCrewAssignmentMutation,
   useUpdateCrewAssignmentStatusMutation,
   useDeleteCrewAssignmentMutation,
+  useGetPlatformsQuery,
+  useGetBroadcastsByServiceQuery,
+  useCreateBroadcastMutation,
+  useUpdateBroadcastStatusMutation,
+  useDeleteBroadcastMutation,
 } = api;
