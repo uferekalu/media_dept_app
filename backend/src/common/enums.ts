@@ -45,8 +45,22 @@ export const VALID_SERVICE_STATUS_TRANSITIONS: Record<ServiceStatus, ServiceStat
   [ServiceStatus.ARCHIVED]: [],
 };
 
-// The per-platform Broadcast sub-pipeline arrives with the Broadcast entity in Phase 4 —
-// not defined yet, since there's no schema to attach it to until then.
+// The per-platform Broadcast sub-pipeline (brief Section 3). Repeats once per Platform
+// a Service streams to — see backend/CLAUDE.md's rollup rules for how this feeds back
+// into ServiceStatus.
+export enum BroadcastStatus {
+  SCHEDULED = 'SCHEDULED',
+  LIVE = 'LIVE',
+  ENDED = 'ENDED',
+  PUBLISHED = 'PUBLISHED',
+}
+
+export const VALID_BROADCAST_STATUS_TRANSITIONS: Record<BroadcastStatus, BroadcastStatus[]> = {
+  [BroadcastStatus.SCHEDULED]: [BroadcastStatus.LIVE],
+  [BroadcastStatus.LIVE]: [BroadcastStatus.ENDED],
+  [BroadcastStatus.ENDED]: [BroadcastStatus.PUBLISHED],
+  [BroadcastStatus.PUBLISHED]: [],
+};
 
 export enum PlatformName {
   YOUTUBE = 'YOUTUBE',
@@ -80,10 +94,7 @@ export const VALID_CREW_ASSIGNMENT_STATUS_TRANSITIONS: Record<
   [CrewAssignmentStatus.COMPLETED]: [],
 };
 
-// Polymorphic StatusLog target — BROADCAST isn't written to until Phase 4, but the enum
-// is defined now so the StatusLog schema's entity_type field has its full shape from
-// Phase 1 (same reasoning as Protocol's ProtocolMember password field arriving before
-// Auth did).
+// Polymorphic StatusLog target.
 export enum StatusLogEntityType {
   SERVICE = 'SERVICE',
   BROADCAST = 'BROADCAST',
