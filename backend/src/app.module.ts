@@ -9,11 +9,11 @@ import { ServicesModule } from './modules/services/services.module';
 import { RunOfShowModule } from './modules/run-of-show/run-of-show.module';
 import { PlatformsModule } from './modules/platforms/platforms.module';
 import { StatusLogsModule } from './modules/status-logs/status-logs.module';
+import { CrewAssignmentsModule } from './modules/crew-assignments/crew-assignments.module';
 
-// Phase 1 — foundation only: schemas + REST CRUD for the five entities below. Status
-// enforcement (Phase 2), CrewAssignment (Phase 3), Broadcast (Phase 4), Equipment
-// (Phase 5), MediaAsset (Phase 6), and Auth (Phase 7) are not wired up yet — see
-// docs/MEDIA_APP_BRIEF.md Section 7.
+// Phases 1-3 wired up so far: foundation schemas/CRUD, Service status enforcement, and
+// CrewAssignment. Broadcast (Phase 4), Equipment (Phase 5), MediaAsset (Phase 6), and
+// Auth (Phase 7) are not wired up yet — see docs/MEDIA_APP_BRIEF.md Section 7.
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -31,6 +31,7 @@ import { StatusLogsModule } from './modules/status-logs/status-logs.module';
     RunOfShowModule,
     PlatformsModule,
     StatusLogsModule,
+    CrewAssignmentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
