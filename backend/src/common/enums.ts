@@ -94,6 +94,33 @@ export const VALID_CREW_ASSIGNMENT_STATUS_TRANSITIONS: Record<
   [CrewAssignmentStatus.COMPLETED]: [],
 };
 
+export enum EquipmentCategory {
+  CAMERA = 'CAMERA',
+  MICROPHONE = 'MICROPHONE',
+  TRIPOD = 'TRIPOD',
+  LAPTOP = 'LAPTOP',
+  MEMORY_CARD = 'MEMORY_CARD',
+  CABLE = 'CABLE',
+  LIGHTING = 'LIGHTING',
+  OTHER = 'OTHER',
+}
+
+export enum EquipmentCondition {
+  GOOD = 'GOOD',
+  NEEDS_REPAIR = 'NEEDS_REPAIR',
+  OUT_OF_SERVICE = 'OUT_OF_SERVICE',
+}
+
+// Not a guarded state machine like Service/Broadcast/CrewAssignment (brief Section 3
+// doesn't define one for Equipment) — current_status is set directly via the general
+// update endpoint (e.g. marking something IN_REPAIR) or as a side effect of the
+// checkout/return flow (EquipmentCheckoutsService), whichever happens.
+export enum EquipmentCurrentStatus {
+  AVAILABLE = 'AVAILABLE',
+  CHECKED_OUT = 'CHECKED_OUT',
+  IN_REPAIR = 'IN_REPAIR',
+}
+
 // Polymorphic StatusLog target.
 export enum StatusLogEntityType {
   SERVICE = 'SERVICE',
