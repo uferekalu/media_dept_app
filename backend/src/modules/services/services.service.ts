@@ -6,6 +6,7 @@ import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { UpdateServiceStatusDto } from './dto/update-service-status.dto';
 import { StatusLogsService } from '../status-logs/status-logs.service';
+import { StatusLogDocument } from '../status-logs/schemas/status-log.schema';
 import { BroadcastsService } from '../broadcasts/broadcasts.service';
 import {
   BroadcastStatus,
@@ -142,5 +143,30 @@ export class ServicesService {
       status,
       notes: note,
     });
+  }
+
+  // Powers the Status Timeline screen (brief Section 5) — the Service's own log plus
+  // every one of its Broadcasts' logs, merged and sorted so a director sees the full
+  // picture (e.g. "Broadcast: YouTube went LIVE" right next to "Service: LIVE") in one
+  // place instead of piecing it together from separate per-entity calls.
+  async getMergedTimeline(id: string): Promise<StatusLogDocument[]> {
+    await this.findOne(id);
+
+    const [serviceLog, broadcasts] = await Promise.all([
+      this.statusLogsService.findForEntity(StatusLogEntityType.SERVICE, id),
+      this.broadcastsService.findByService(id),
+    ]);
+
+    const broadcastLogs = (
+      await Promise.all(
+        broadcasts.map((broadcast) =>
+          this.statusLogsService.findForEntity(StatusLogEntityType.BROADCAST, String(broadcast._id)),
+        ),
+      )
+    ).flat();
+
+    return [...serviceLog, ...broadcastLogs].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+    );
   }
 }

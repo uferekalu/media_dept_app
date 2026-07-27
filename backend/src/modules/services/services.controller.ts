@@ -37,6 +37,16 @@ export class ServicesController {
     return this.servicesService.findOne(id);
   }
 
+  @Get(':id/timeline')
+  @ApiOperation({
+    summary:
+      "Merged status timeline for a service — its own log plus every one of its broadcasts' logs, most recent first",
+  })
+  @ApiNotFoundResponse({ description: 'Service not found' })
+  getMergedTimeline(@Param('id') id: string) {
+    return this.servicesService.getMergedTimeline(id);
+  }
+
   @Patch(':id')
   @ApiOperation({ summary: 'Update a service\'s details (not its status — see Phase 2)' })
   @ApiNotFoundResponse({ description: 'Service not found' })
