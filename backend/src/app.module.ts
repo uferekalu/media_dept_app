@@ -11,11 +11,13 @@ import { PlatformsModule } from './modules/platforms/platforms.module';
 import { StatusLogsModule } from './modules/status-logs/status-logs.module';
 import { CrewAssignmentsModule } from './modules/crew-assignments/crew-assignments.module';
 import { BroadcastsModule } from './modules/broadcasts/broadcasts.module';
+import { EquipmentModule } from './modules/equipment/equipment.module';
+import { EquipmentCheckoutsModule } from './modules/equipment-checkouts/equipment-checkouts.module';
 
-// Phases 1-4 wired up so far: foundation schemas/CRUD, Service status enforcement,
-// CrewAssignment, and Broadcast (with the Service rollup). Equipment (Phase 5),
-// MediaAsset (Phase 6), and Auth (Phase 7) are not wired up yet — see
-// docs/MEDIA_APP_BRIEF.md Section 7.
+// Phases 1-5 wired up so far: foundation schemas/CRUD, Service status enforcement,
+// CrewAssignment, Broadcast (with the Service rollup), and Equipment/
+// EquipmentCheckout. MediaAsset (Phase 6) and Auth (Phase 7) are not wired up yet —
+// see docs/MEDIA_APP_BRIEF.md Section 7.
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -35,6 +37,8 @@ import { BroadcastsModule } from './modules/broadcasts/broadcasts.module';
     StatusLogsModule,
     CrewAssignmentsModule,
     BroadcastsModule,
+    EquipmentModule,
+    EquipmentCheckoutsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
