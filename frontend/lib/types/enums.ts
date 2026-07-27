@@ -230,3 +230,64 @@ export enum StatusLogEntityType {
   SERVICE = 'SERVICE',
   BROADCAST = 'BROADCAST',
 }
+
+export enum EquipmentCategory {
+  CAMERA = 'CAMERA',
+  MICROPHONE = 'MICROPHONE',
+  TRIPOD = 'TRIPOD',
+  LAPTOP = 'LAPTOP',
+  MEMORY_CARD = 'MEMORY_CARD',
+  CABLE = 'CABLE',
+  LIGHTING = 'LIGHTING',
+  OTHER = 'OTHER',
+}
+
+export const EQUIPMENT_CATEGORY_LABELS: Record<EquipmentCategory, string> = {
+  [EquipmentCategory.CAMERA]: 'Camera',
+  [EquipmentCategory.MICROPHONE]: 'Microphone',
+  [EquipmentCategory.TRIPOD]: 'Tripod',
+  [EquipmentCategory.LAPTOP]: 'Laptop',
+  [EquipmentCategory.MEMORY_CARD]: 'Memory Card',
+  [EquipmentCategory.CABLE]: 'Cable',
+  [EquipmentCategory.LIGHTING]: 'Lighting',
+  [EquipmentCategory.OTHER]: 'Other',
+};
+
+export enum EquipmentCondition {
+  GOOD = 'GOOD',
+  NEEDS_REPAIR = 'NEEDS_REPAIR',
+  OUT_OF_SERVICE = 'OUT_OF_SERVICE',
+}
+
+export const EQUIPMENT_CONDITION_LABELS: Record<EquipmentCondition, string> = {
+  [EquipmentCondition.GOOD]: 'Good',
+  [EquipmentCondition.NEEDS_REPAIR]: 'Needs Repair',
+  [EquipmentCondition.OUT_OF_SERVICE]: 'Out of Service',
+};
+
+// Not a guarded pipeline (no VALID_..._TRANSITIONS map, unlike Service/Broadcast/
+// CrewAssignment) — backend/CLAUDE.md doesn't define a state machine for Equipment.
+// current_status is set directly via edit or as a checkout/return side effect.
+export enum EquipmentCurrentStatus {
+  AVAILABLE = 'AVAILABLE',
+  CHECKED_OUT = 'CHECKED_OUT',
+  IN_REPAIR = 'IN_REPAIR',
+}
+
+export const EQUIPMENT_CURRENT_STATUS_LABELS: Record<EquipmentCurrentStatus, string> = {
+  [EquipmentCurrentStatus.AVAILABLE]: 'Available',
+  [EquipmentCurrentStatus.CHECKED_OUT]: 'Checked Out',
+  [EquipmentCurrentStatus.IN_REPAIR]: 'In Repair',
+};
+
+export const EQUIPMENT_CURRENT_STATUS_BADGE_VARIANT: Record<EquipmentCurrentStatus, StatusColorBucket> = {
+  [EquipmentCurrentStatus.AVAILABLE]: 'complete',
+  [EquipmentCurrentStatus.CHECKED_OUT]: 'in-progress',
+  [EquipmentCurrentStatus.IN_REPAIR]: 'archived',
+};
+
+export const EQUIPMENT_CONDITION_BADGE_VARIANT: Record<EquipmentCondition, StatusColorBucket> = {
+  [EquipmentCondition.GOOD]: 'complete',
+  [EquipmentCondition.NEEDS_REPAIR]: 'pending',
+  [EquipmentCondition.OUT_OF_SERVICE]: 'archived',
+};
