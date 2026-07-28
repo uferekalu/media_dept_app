@@ -14,6 +14,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   useCreateEquipmentCheckoutMutation,
   useDeleteEquipmentMutation,
   useUpdateEquipmentMutation,
@@ -48,6 +58,7 @@ export function EquipmentRow({
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutMemberId, setCheckoutMemberId] = useState<string | null>(null);
   const [expectedReturnAt, setExpectedReturnAt] = useState('');
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   async function handleConditionChange(condition: EquipmentCondition | null) {
     if (!condition) return;
@@ -89,10 +100,10 @@ export function EquipmentRow({
   }
 
   async function handleDelete() {
-    if (!window.confirm(`Remove ${equipment.name} from the inventory?`)) return;
     try {
       await deleteEquipment(equipment._id).unwrap();
       toast.success('Equipment removed');
+      setDeleteOpen(false);
     } catch {
       toast.error('Could not remove this equipment.');
     }
@@ -112,7 +123,7 @@ export function EquipmentRow({
           size="icon-sm"
           variant="outline"
           className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={handleDelete}
+          onClick={() => setDeleteOpen(true)}
           disabled={isDeleting}
           aria-label={`Remove ${equipment.name}`}
         >
@@ -199,6 +210,24 @@ export function EquipmentRow({
           </Button>
         </div>
       )}
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this equipment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {equipment.name} will be removed from the inventory. This can&apos;t be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? 'Removing…' : 'Remove'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

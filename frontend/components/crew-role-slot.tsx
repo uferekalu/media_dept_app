@@ -12,6 +12,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { CrewAssignmentStatusActions } from '@/components/crew-assignment-status-actions';
 import { useCreateCrewAssignmentMutation, useDeleteCrewAssignmentMutation } from '@/lib/redux/api';
 import {
@@ -42,6 +52,7 @@ export function CrewRoleSlot({
   members: MediaTeamMember[] | undefined;
 }) {
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [removeOpen, setRemoveOpen] = useState(false);
   const [createAssignment, { isLoading: isAssigning }] = useCreateCrewAssignmentMutation();
   const [deleteAssignment, { isLoading: isRemoving }] = useDeleteCrewAssignmentMutation();
 
@@ -67,7 +78,6 @@ export function CrewRoleSlot({
 
   async function handleRemove() {
     if (!assignment) return;
-    if (!window.confirm(`Remove the ${CREW_ASSIGNMENT_ROLE_LABELS[role]} assignment?`)) return;
     try {
       await deleteAssignment({
         id: assignment._id,
@@ -75,6 +85,7 @@ export function CrewRoleSlot({
         mediaTeamMemberId: assignment.media_team_member,
       }).unwrap();
       toast.success('Assignment removed');
+      setRemoveOpen(false);
     } catch {
       toast.error('Could not remove this assignment.');
     }
@@ -107,7 +118,7 @@ export function CrewRoleSlot({
             size="icon-sm"
             variant="outline"
             className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={handleRemove}
+            onClick={() => setRemoveOpen(true)}
             disabled={isRemoving}
             aria-label={`Remove ${CREW_ASSIGNMENT_ROLE_LABELS[role]} assignment`}
           >
@@ -137,6 +148,23 @@ export function CrewRoleSlot({
           </Button>
         </div>
       )}
+
+      <AlertDialog open={removeOpen} onOpenChange={setRemoveOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this assignment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {CREW_ASSIGNMENT_ROLE_LABELS[role]} will no longer have anyone assigned.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleRemove} disabled={isRemoving}>
+              {isRemoving ? 'Removing…' : 'Remove'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

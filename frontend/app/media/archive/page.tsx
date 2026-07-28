@@ -1,17 +1,20 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowLeft, ExternalLink, Film, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Film, Play, RefreshCw } from 'lucide-react';
 import { useGetFullRecordingsQuery, useGetServicesQuery } from '@/lib/redux/api';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
+import { VideoPlayerDialog } from '@/components/video-player-dialog';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { MediaAsset } from '@/lib/types/media-asset';
 import type { Service } from '@/lib/types/service';
 
 // VOD Archive — brief Section 5: past services with their full recording link and
-// metadata, most recent first.
+// metadata, most recent first. Plays inline (VideoPlayerDialog) rather than sending
+// the user away from the app to watch it.
 export default function VodArchivePage() {
   const {
     data: recordings,
@@ -21,6 +24,7 @@ export default function VodArchivePage() {
     refetch,
   } = useGetFullRecordingsQuery();
   const { data: services } = useGetServicesQuery();
+  const [nowPlaying, setNowPlaying] = useState<MediaAsset | null>(null);
 
   const serviceById = useMemo(() => {
     const map = new Map<string, Service>();
@@ -85,12 +89,11 @@ export default function VodArchivePage() {
           {recordings!.map((recording) => {
             const service = recording.service ? serviceById.get(recording.service) : undefined;
             return (
-              <a
+              <button
                 key={recording._id}
-                href={recording.storage_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 hover:bg-muted"
+                type="button"
+                onClick={() => setNowPlaying(recording)}
+                className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 text-left hover:bg-muted"
               >
                 <div className="min-w-0">
                   <p className="text-body font-medium text-foreground">
@@ -102,11 +105,23 @@ export default function VodArchivePage() {
                     {recording.tags.join(', ')}
                   </p>
                 </div>
-                <ExternalLink className="size-4 shrink-0 text-muted-foreground" />
-              </a>
+                <Play className="size-4 shrink-0 text-muted-foreground" />
+              </button>
             );
           })}
         </div>
+      )}
+
+      {nowPlaying && (
+        <VideoPlayerDialog
+          open={Boolean(nowPlaying)}
+          onOpenChange={(open) => !open && setNowPlaying(null)}
+          url={nowPlaying.storage_url}
+          title={
+            (nowPlaying.service ? serviceById.get(nowPlaying.service)?.name : undefined) ??
+            'Full Recording'
+          }
+        />
       )}
     </main>
   );
