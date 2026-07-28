@@ -13,11 +13,12 @@ import { CrewAssignmentsModule } from './modules/crew-assignments/crew-assignmen
 import { BroadcastsModule } from './modules/broadcasts/broadcasts.module';
 import { EquipmentModule } from './modules/equipment/equipment.module';
 import { EquipmentCheckoutsModule } from './modules/equipment-checkouts/equipment-checkouts.module';
+import { MediaAssetsModule } from './modules/media-assets/media-assets.module';
 
-// Phases 1-5 wired up so far: foundation schemas/CRUD, Service status enforcement,
-// CrewAssignment, Broadcast (with the Service rollup), and Equipment/
-// EquipmentCheckout. MediaAsset (Phase 6) and Auth (Phase 7) are not wired up yet —
-// see docs/MEDIA_APP_BRIEF.md Section 7.
+// Phases 1-6 wired up so far: foundation schemas/CRUD, Service status enforcement,
+// CrewAssignment, Broadcast (with the Service rollup), Equipment/EquipmentCheckout,
+// and MediaAsset. Auth (Phase 7) is not wired up yet — see
+// docs/MEDIA_APP_BRIEF.md Section 7.
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -39,6 +40,7 @@ import { EquipmentCheckoutsModule } from './modules/equipment-checkouts/equipmen
     BroadcastsModule,
     EquipmentModule,
     EquipmentCheckoutsModule,
+    MediaAssetsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
