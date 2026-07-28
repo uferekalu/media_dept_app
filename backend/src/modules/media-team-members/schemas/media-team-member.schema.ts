@@ -29,6 +29,16 @@ export class MediaTeamMember {
   // explicitly selects it back in.
   @Prop({ required: true, select: false })
   password_hash: string;
+
+  // Forgot-password OTP (AuthService.forgotPassword()/resetPassword()) — same
+  // select:false + never-in-toJSON pattern as password_hash. Hashed, not stored raw, and
+  // cleared (both fields) the moment it's used or superseded by a newer request, so a
+  // captured value is never replayable.
+  @Prop({ select: false })
+  reset_otp_hash?: string;
+
+  @Prop({ select: false })
+  reset_otp_expires_at?: Date;
 }
 
 export const MediaTeamMemberSchema = SchemaFactory.createForClass(MediaTeamMember);
@@ -37,6 +47,8 @@ MediaTeamMemberSchema.set('toJSON', {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   transform: (_doc, ret: any) => {
     delete ret.password_hash;
+    delete ret.reset_otp_hash;
+    delete ret.reset_otp_expires_at;
     return ret;
   },
 });

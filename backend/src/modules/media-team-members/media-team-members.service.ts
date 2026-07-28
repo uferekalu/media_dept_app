@@ -40,6 +40,78 @@ export class MediaTeamMembersService {
     return this.mediaTeamMemberModel.find().sort({ full_name: 1 }).exec();
   }
 
+  // Used only by AuthService.signup() to decide whether the very first account ever
+  // created becomes ADMIN (see that method's comment) — nothing else needs a raw count.
+  count(): Promise<number> {
+    return this.mediaTeamMemberModel.countDocuments().exec();
+  }
+
+  // Used only by AuthService.login() — the schema's `select: false` on password_hash
+  // keeps it out of every other query by default, so login is the one deliberate,
+  // narrow place that opts back in.
+  findByPhoneNumberWithPassword(phoneNumber: string): Promise<MediaTeamMemberDocument | null> {
+    return this.mediaTeamMemberModel
+      .findOne({ phone_number: phoneNumber })
+      .select('+password_hash')
+      .exec();
+  }
+
+  // Used only by AuthService.changePassword() — same select:false opt-in pattern as
+  // findByPhoneNumberWithPassword(), narrowed to "the currently authenticated user's
+  // own record" by the caller (never exposed as a way to fetch anyone else's hash).
+  findByIdWithPassword(id: string): Promise<MediaTeamMemberDocument | null> {
+    return this.mediaTeamMemberModel.findById(id).select('+password_hash').exec();
+  }
+
+  // Used only by AuthService.forgotPassword() to check whether an account exists for
+  // the given phone number before generating/sending an OTP — deliberately returns
+  // null rather than throwing, so the caller can respond identically either way and
+  // never reveal whether a phone number has an account.
+  findByPhoneNumber(phoneNumber: string): Promise<MediaTeamMemberDocument | null> {
+    return this.mediaTeamMemberModel.findOne({ phone_number: phoneNumber }).exec();
+  }
+
+  // Used only by AuthService.resetPassword() — same select:false opt-in pattern as
+  // findByPhoneNumberWithPassword(), scoped to the reset-OTP fields instead.
+  findByPhoneNumberWithResetOtp(phoneNumber: string): Promise<MediaTeamMemberDocument | null> {
+    return this.mediaTeamMemberModel
+      .findOne({ phone_number: phoneNumber })
+      .select('+reset_otp_hash +reset_otp_expires_at')
+      .exec();
+  }
+
+  // The only path allowed to write reset_otp_hash/reset_otp_expires_at — see
+  // AuthService.forgotPassword(). A fresh call always overwrites any prior unused OTP,
+  // so only the most recently requested code is ever valid.
+  async setResetOtp(id: string, otpHash: string, expiresAt: Date): Promise<void> {
+    const result = await this.mediaTeamMemberModel
+      .findByIdAndUpdate(id, { reset_otp_hash: otpHash, reset_otp_expires_at: expiresAt })
+      .exec();
+    if (!result) {
+      throw new NotFoundException(`Media team member ${id} not found`);
+    }
+  }
+
+  // Called once an OTP has been consumed (or superseded) — see
+  // AuthService.resetPassword() — so a captured/guessed code is never replayable.
+  async clearResetOtp(id: string): Promise<void> {
+    const result = await this.mediaTeamMemberModel
+      .findByIdAndUpdate(id, { $unset: { reset_otp_hash: 1, reset_otp_expires_at: 1 } })
+      .exec();
+    if (!result) {
+      throw new NotFoundException(`Media team member ${id} not found`);
+    }
+  }
+
+  async updatePassword(id: string, newPasswordHash: string): Promise<void> {
+    const result = await this.mediaTeamMemberModel
+      .findByIdAndUpdate(id, { password_hash: newPasswordHash })
+      .exec();
+    if (!result) {
+      throw new NotFoundException(`Media team member ${id} not found`);
+    }
+  }
+
   async findOne(id: string): Promise<MediaTeamMemberDocument> {
     const member = await this.mediaTeamMemberModel.findById(id).exec();
     if (!member) {
