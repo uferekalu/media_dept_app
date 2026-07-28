@@ -21,6 +21,11 @@ import {
 import { MEDIA_ASSET_TYPE_LABELS, MediaAssetType } from '@/lib/types/enums';
 import type { Service } from '@/lib/types/service';
 
+// Sentinel values for the "clear this filter" option — Base UI's Select needs a real
+// item value to render/select, it can't bind a SelectItem directly to null.
+const ALL_TYPES = 'ALL_TYPES';
+const ALL_SERVICES = 'ALL_SERVICES';
+
 // Media Asset Library — brief Section 5: upload, tag, search. Filters by service and
 // type via query params (server-side); tag search is client-side substring match
 // across each asset's tags for a snappier "type to filter" feel than round-tripping
@@ -76,13 +81,19 @@ export default function MediaLibraryPage() {
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <div>
           <Label className="mb-1">Type</Label>
-          <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as MediaAssetType | null)}>
+          <Select
+            value={typeFilter ?? ALL_TYPES}
+            onValueChange={(v) => setTypeFilter(!v || v === ALL_TYPES ? null : (v as MediaAssetType))}
+          >
             <SelectTrigger className="min-w-40">
               <SelectValue>
-                {(value: MediaAssetType | null) => (value ? MEDIA_ASSET_TYPE_LABELS[value] : 'All types')}
+                {(value: string | null) =>
+                  !value || value === ALL_TYPES ? 'All types' : MEDIA_ASSET_TYPE_LABELS[value as MediaAssetType]
+                }
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value={ALL_TYPES}>All types</SelectItem>
               {Object.values(MediaAssetType).map((t) => (
                 <SelectItem key={t} value={t}>
                   {MEDIA_ASSET_TYPE_LABELS[t]}
@@ -93,13 +104,21 @@ export default function MediaLibraryPage() {
         </div>
         <div>
           <Label className="mb-1">Service</Label>
-          <Select value={serviceFilter} onValueChange={setServiceFilter}>
+          <Select
+            value={serviceFilter ?? ALL_SERVICES}
+            onValueChange={(v) => setServiceFilter(v === ALL_SERVICES ? null : v)}
+          >
             <SelectTrigger className="min-w-44">
               <SelectValue>
-                {(value: string | null) => services?.find((s) => s._id === value)?.name ?? 'All services'}
+                {(value: string | null) =>
+                  !value || value === ALL_SERVICES
+                    ? 'All services'
+                    : (services?.find((s) => s._id === value)?.name ?? 'All services')
+                }
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value={ALL_SERVICES}>All services</SelectItem>
               {services?.map((s) => (
                 <SelectItem key={s._id} value={s._id}>
                   {s.name}
@@ -115,7 +134,7 @@ export default function MediaLibraryPage() {
       </div>
 
       {isLoading && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="h-52 w-full rounded-xl" />
           ))}
@@ -153,7 +172,7 @@ export default function MediaLibraryPage() {
       )}
 
       {!isLoading && !isError && visibleAssets.length > 0 && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {visibleAssets.map((asset) => (
             <MediaAssetCard
               key={asset._id}

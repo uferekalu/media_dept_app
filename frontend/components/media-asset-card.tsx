@@ -1,26 +1,40 @@
 'use client';
 
+import { useState } from 'react';
 import { toast } from 'sonner';
-import { ExternalLink, Trash2, Video } from 'lucide-react';
+import { Play, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { VideoPlayerDialog } from '@/components/video-player-dialog';
 import { useDeleteMediaAssetMutation } from '@/lib/redux/api';
 import { IMAGE_MEDIA_ASSET_TYPES, MEDIA_ASSET_TYPE_LABELS } from '@/lib/types/enums';
 import type { MediaAsset } from '@/lib/types/media-asset';
 import type { Service } from '@/lib/types/service';
 
 // One card per asset in the Media Asset Library grid — an actual image preview for
-// PHOTO/GRAPHIC/THUMBNAIL, a plain link-out for VIDEO_CLIP/FULL_RECORDING (no
-// preview possible for an arbitrary pasted URL).
+// PHOTO/GRAPHIC/THUMBNAIL; for VIDEO_CLIP/FULL_RECORDING, clicking plays it inline via
+// VideoPlayerDialog rather than navigating away to YouTube/Facebook/etc.
 export function MediaAssetCard({ asset, service }: { asset: MediaAsset; service?: Service }) {
   const [deleteAsset, { isLoading }] = useDeleteMediaAssetMutation();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [playerOpen, setPlayerOpen] = useState(false);
   const isImage = IMAGE_MEDIA_ASSET_TYPES.includes(asset.type);
 
   async function handleDelete() {
-    if (!window.confirm('Remove this media asset?')) return;
     try {
       await deleteAsset(asset._id).unwrap();
       toast.success('Removed');
+      setDeleteOpen(false);
     } catch {
       toast.error('Could not remove this asset.');
     }
@@ -33,16 +47,14 @@ export function MediaAssetCard({ asset, service }: { asset: MediaAsset; service?
         // Cloudinary URLs, not a local/known-domain asset next/image can optimize.
         <img src={asset.storage_url} alt="" className="h-40 w-full object-cover" />
       ) : (
-        <a
-          href={asset.storage_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex h-40 w-full items-center justify-center gap-1.5 bg-muted text-muted-foreground hover:text-foreground"
+        <button
+          type="button"
+          onClick={() => setPlayerOpen(true)}
+          className="flex h-40 w-full cursor-pointer items-center justify-center gap-1.5 bg-muted text-muted-foreground hover:text-foreground"
         >
-          <Video className="size-6" />
-          <span className="text-body-sm">Open link</span>
-          <ExternalLink className="size-3.5" />
-        </a>
+          <Play className="size-6" />
+          <span className="text-body-sm">Play</span>
+        </button>
       )}
 
       <div className="flex flex-col gap-1.5 p-3">
@@ -52,7 +64,7 @@ export function MediaAssetCard({ asset, service }: { asset: MediaAsset; service?
             size="icon-sm"
             variant="outline"
             className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={handleDelete}
+            onClick={() => setDeleteOpen(true)}
             disabled={isLoading}
             aria-label="Remove asset"
           >
@@ -70,6 +82,30 @@ export function MediaAssetCard({ asset, service }: { asset: MediaAsset; service?
           </div>
         )}
       </div>
+
+      {!isImage && (
+        <VideoPlayerDialog
+          open={playerOpen}
+          onOpenChange={setPlayerOpen}
+          url={asset.storage_url}
+          title={service?.name ?? MEDIA_ASSET_TYPE_LABELS[asset.type]}
+        />
+      )}
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this media asset?</AlertDialogTitle>
+            <AlertDialogDescription>This can&apos;t be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleDelete} disabled={isLoading}>
+              {isLoading ? 'Removing…' : 'Remove'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

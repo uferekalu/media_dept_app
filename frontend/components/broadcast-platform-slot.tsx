@@ -1,9 +1,20 @@
 'use client';
 
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { BroadcastStatusActions } from '@/components/broadcast-status-actions';
 import { useCreateBroadcastMutation, useDeleteBroadcastMutation } from '@/lib/redux/api';
 import {
@@ -32,6 +43,7 @@ export function BroadcastPlatformSlot({
 }) {
   const [createBroadcast, { isLoading: isCreating }] = useCreateBroadcastMutation();
   const [deleteBroadcast, { isLoading: isRemoving }] = useDeleteBroadcastMutation();
+  const [removeOpen, setRemoveOpen] = useState(false);
 
   async function handleCreate() {
     try {
@@ -52,10 +64,10 @@ export function BroadcastPlatformSlot({
 
   async function handleRemove() {
     if (!broadcast) return;
-    if (!window.confirm(`Remove the ${PLATFORM_NAME_LABELS[platform.name]} broadcast?`)) return;
     try {
       await deleteBroadcast({ id: broadcast._id, serviceId }).unwrap();
       toast.success('Broadcast removed');
+      setRemoveOpen(false);
     } catch {
       toast.error('Could not remove this broadcast.');
     }
@@ -81,7 +93,7 @@ export function BroadcastPlatformSlot({
             size="icon-sm"
             variant="outline"
             className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-            onClick={handleRemove}
+            onClick={() => setRemoveOpen(true)}
             disabled={isRemoving}
             aria-label={`Remove ${PLATFORM_NAME_LABELS[platform.name]} broadcast`}
           >
@@ -93,6 +105,24 @@ export function BroadcastPlatformSlot({
           Schedule
         </Button>
       ) : null}
+
+      <AlertDialog open={removeOpen} onOpenChange={setRemoveOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this broadcast?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The {PLATFORM_NAME_LABELS[platform.name]} broadcast for this service will
+              be removed. This can&apos;t be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleRemove} disabled={isRemoving}>
+              {isRemoving ? 'Removing…' : 'Remove'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
