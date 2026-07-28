@@ -7,15 +7,17 @@ import { store } from '@/lib/redux/store';
 import { AppHeader } from '@/components/app-header';
 import { AppNav } from '@/components/app-nav';
 import { MobileNavDrawer } from '@/components/mobile-nav-drawer';
+import { AuthHydrator } from '@/components/auth-hydrator';
 
 // Central place to wrap the app in client-side providers: theming, Redux store,
-// toast notifications, and anything else added later. No AuthGuard yet — Phase 7
-// adds one, mirroring protocol_dept_app's own Phase 5 (nav/header shipped unguarded
-// first, guards retrofitted once login existed).
+// toast notifications, and anything else added later. No route-enforcement guard yet
+// (every screen still works without a session) — that's the final PR of Phase 7, once
+// the backend's @Roles() guards land too, mirroring protocol_dept_app's own staging.
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <Provider store={store}>
+        <AuthHydrator />
         <AppHeader />
         <AppNav />
         <MobileNavDrawer />

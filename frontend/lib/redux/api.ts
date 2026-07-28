@@ -1,4 +1,10 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import {
+  createApi,
+  fetchBaseQuery,
+  type BaseQueryFn,
+  type FetchArgs,
+  type FetchBaseQueryError,
+} from '@reduxjs/toolkit/query/react';
 import type { Service } from '@/lib/types/service';
 import type { StatusLog } from '@/lib/types/status-log';
 import type { MediaTeamMember } from '@/lib/types/media-team-member';
@@ -19,16 +25,41 @@ import type {
   ServiceStatus,
   StatusLogEntityType,
 } from '@/lib/types/enums';
+import type { AuthenticatedMediaTeamMember, LoginInput, LoginResponse } from '@/lib/types/auth';
+import type { RootState } from './store';
+import { clearToken } from './slices/authSlice';
+
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4100/api',
+  prepareHeaders: (headers, { getState }) => {
+    const token = (getState() as RootState).auth.token;
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+    return headers;
+  },
+});
+
+// Any 401 (expired token, or — once the backend's guards land — a route that now
+// requires auth) clears the session, so a stale/invalid token can't linger and every
+// consumer of useCurrentUser() reacts the same way an explicit logout would produce.
+const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
+  args,
+  api,
+  extraOptions,
+) => {
+  const result = await rawBaseQuery(args, api, extraOptions);
+  if (result.error?.status === 401) {
+    api.dispatch(clearToken());
+  }
+  return result;
+};
 
 // Single RTK Query API slice for all server state, per frontend/CLAUDE.md — endpoints
-// are added here as each screen needs them, grouped by backend resource. No auth token
-// wiring yet (Phase 7) — add prepareHeaders once login exists, same as
-// protocol_dept_app's api.ts does.
+// are added here as each screen needs them, grouped by backend resource.
 export const api = createApi({
   reducerPath: 'api',
-  baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4100/api',
-  }),
+  baseQuery: baseQueryWithReauth,
   // A live dashboard should pick up changes another crew member just made — refetch
   // when the tab regains focus or the connection comes back, on top of the usual
   // tag-based invalidation. Paired with setupListeners(store.dispatch) in store.ts.
@@ -46,6 +77,14 @@ export const api = createApi({
     'MediaAsset',
   ],
   endpoints: (builder) => ({
+    login: builder.mutation<LoginResponse, LoginInput>({
+      query: (body) => ({ url: '/auth/login', method: 'POST', body }),
+    }),
+
+    getCurrentUser: builder.query<AuthenticatedMediaTeamMember, void>({
+      query: () => '/auth/me',
+    }),
+
     // Powers the Dashboard's "Live Now" view.
     getLiveNowServices: builder.query<Service[], void>({
       query: () => '/services/live-now',
@@ -105,8 +144,8 @@ export const api = createApi({
       ],
     }),
 
-    // Powers the team directory, the ActingAsPicker, and the Crew Assignment Board's
-    // "assign someone" pickers.
+    // Powers the team directory and the Crew Assignment Board's "assign someone"
+    // pickers.
     getMediaTeamMembers: builder.query<MediaTeamMember[], void>({
       query: () => '/media-team-members',
       providesTags: (result) =>
@@ -420,6 +459,8 @@ export const api = createApi({
 });
 
 export const {
+  useLoginMutation,
+  useGetCurrentUserQuery,
   useGetLiveNowServicesQuery,
   useGetServicesQuery,
   useGetServiceQuery,

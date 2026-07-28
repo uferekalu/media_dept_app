@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useAppSelector } from '@/lib/redux/hooks';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import {
   useCreateMediaAssetLinkMutation,
   useGetServicesQuery,
@@ -30,7 +30,8 @@ import {
 // URL field instead, since video content usually already lives on YouTube via the
 // service's Broadcast and never actually uploads here.
 export function MediaAssetUploadForm() {
-  const actingAsId = useAppSelector((state) => state.session.actingAsId);
+  const { data: currentUser } = useCurrentUser();
+  const currentUserId = currentUser?._id ?? null;
   const { data: services } = useGetServicesQuery();
   const [uploadImage, { isLoading: isUploading }] = useUploadMediaAssetMutation();
   const [createLink, { isLoading: isLinking }] = useCreateMediaAssetLinkMutation();
@@ -52,8 +53,8 @@ export function MediaAssetUploadForm() {
   }
 
   async function handleSubmit() {
-    if (!actingAsId) {
-      toast.error('Pick yourself from "Acting as" in the header first.');
+    if (!currentUserId) {
+      toast.error('Log in first to add media.');
       return;
     }
 
@@ -68,7 +69,7 @@ export function MediaAssetUploadForm() {
           file,
           type,
           service: serviceId ?? undefined,
-          uploaded_by: actingAsId,
+          uploaded_by: currentUserId,
           tags: tags.trim() || undefined,
         }).unwrap();
       } else {
@@ -80,7 +81,7 @@ export function MediaAssetUploadForm() {
           type,
           storage_url: url.trim(),
           service: serviceId ?? undefined,
-          uploaded_by: actingAsId,
+          uploaded_by: currentUserId,
           tags: tags
             ? tags.split(',').map((t) => t.trim()).filter(Boolean)
             : undefined,
@@ -160,14 +161,14 @@ export function MediaAssetUploadForm() {
           <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="faith series, pastor adeyemi" />
         </div>
 
-        <Button onClick={handleSubmit} disabled={isLoading || !actingAsId}>
+        <Button onClick={handleSubmit} disabled={isLoading || !currentUserId}>
           Add
         </Button>
       </div>
 
-      {!actingAsId && (
+      {!currentUserId && (
         <p className="text-caption text-muted-foreground">
-          Pick yourself from &quot;Acting as&quot; in the header to add media.
+          Log in to add media.
         </p>
       )}
     </div>

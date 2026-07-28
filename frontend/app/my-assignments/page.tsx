@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { skipToken } from '@reduxjs/toolkit/query/react';
 import { AlertTriangle, ClipboardList, RefreshCw, UserRound } from 'lucide-react';
-import { useAppSelector } from '@/lib/redux/hooks';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { useGetCrewAssignmentsByMediaTeamMemberQuery, useGetServicesQuery } from '@/lib/redux/api';
 import { CrewAssignmentStatusActions } from '@/components/crew-assignment-status-actions';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
@@ -18,20 +18,20 @@ import {
 import type { CrewAssignment } from '@/lib/types/crew-assignment';
 import type { Service } from '@/lib/types/service';
 
-// My Assignments — brief Section 5 (screen 6): a personal task list scoped to
-// whoever is picked in the header's "Acting as" stand-in (see acting-as-picker.tsx),
-// mirroring protocol_dept_app's own pre-auth My Assignments exactly — replace the
-// picker with a real logged-in identity once Phase 7 lands. Mobile-first and large
-// touch targets per frontend/CLAUDE.md's UX bar for field-use screens.
+// My Assignments — brief Section 5 (screen 6): a personal task list scoped to the
+// logged-in member (Phase 7 login, replacing the old "Acting as" header stand-in).
+// Mobile-first and large touch targets per frontend/CLAUDE.md's UX bar for field-use
+// screens.
 export default function MyAssignmentsPage() {
-  const actingAsId = useAppSelector((state) => state.session.actingAsId);
+  const { data: currentUser } = useCurrentUser();
+  const currentUserId = currentUser?._id ?? null;
   const {
     data: assignments,
     isLoading: isLoadingAssignments,
     isError,
     error,
     refetch,
-  } = useGetCrewAssignmentsByMediaTeamMemberQuery(actingAsId ?? skipToken);
+  } = useGetCrewAssignmentsByMediaTeamMemberQuery(currentUserId ?? skipToken);
   const { data: services } = useGetServicesQuery();
 
   const serviceById = useMemo(() => {
@@ -50,27 +50,26 @@ export default function MyAssignmentsPage() {
         Your crew assignments across every service currently in the pipeline.
       </p>
 
-      {!actingAsId && (
+      {!currentUserId && (
         <EmptyPanel>
           <IconBadge tone="primary">
             <UserRound className="size-7" />
           </IconBadge>
-          <p className="text-heading-md text-foreground">No one selected</p>
+          <p className="text-heading-md text-foreground">Not logged in</p>
           <p className="text-body-sm max-w-sm text-muted-foreground">
-            Pick yourself from the &quot;Acting as&quot; menu in the header to see your
-            assignments.
+            Log in from the header to see your assignments.
           </p>
         </EmptyPanel>
       )}
 
-      {actingAsId && isLoadingAssignments && (
+      {currentUserId && isLoadingAssignments && (
         <div className="flex flex-col gap-2">
           <Skeleton className="h-24 w-full rounded-xl" />
           <Skeleton className="h-24 w-full rounded-xl" />
         </div>
       )}
 
-      {actingAsId && isError && (
+      {currentUserId && isError && (
         <EmptyPanel>
           <IconBadge tone="destructive">
             <AlertTriangle className="size-7" />
@@ -88,7 +87,7 @@ export default function MyAssignmentsPage() {
         </EmptyPanel>
       )}
 
-      {actingAsId && !isLoadingAssignments && !isError && (assignments ?? []).length === 0 && (
+      {currentUserId && !isLoadingAssignments && !isError && (assignments ?? []).length === 0 && (
         <EmptyPanel>
           <IconBadge tone="primary">
             <ClipboardList className="size-7" />
@@ -100,7 +99,7 @@ export default function MyAssignmentsPage() {
         </EmptyPanel>
       )}
 
-      {actingAsId && !isLoadingAssignments && !isError && todo.length > 0 && (
+      {currentUserId && !isLoadingAssignments && !isError && todo.length > 0 && (
         <div className="flex flex-col gap-3">
           {todo.map((assignment) => (
             <AssignmentTaskCard
@@ -112,7 +111,7 @@ export default function MyAssignmentsPage() {
         </div>
       )}
 
-      {actingAsId && !isLoadingAssignments && !isError && completed.length > 0 && (
+      {currentUserId && !isLoadingAssignments && !isError && completed.length > 0 && (
         <div className="mt-6">
           <h2 className="text-heading-md mb-3 text-foreground">Completed</h2>
           <div className="flex flex-col gap-2 opacity-70">

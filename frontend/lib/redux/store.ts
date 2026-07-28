@@ -1,13 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
-import sessionReducer from './slices/sessionSlice';
+import authReducer from './slices/authSlice';
 import { api } from './api';
 
 // Feature slices for client/UI-only state land here as they're needed. Server state
 // goes through the single RTK Query `api` slice instead, per frontend/CLAUDE.md.
 export const store = configureStore({
   reducer: {
-    session: sessionReducer,
+    auth: authReducer,
     [api.reducerPath]: api.reducer,
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(api.middleware),
