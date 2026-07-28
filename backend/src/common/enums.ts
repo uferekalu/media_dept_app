@@ -126,3 +126,28 @@ export enum StatusLogEntityType {
   SERVICE = 'SERVICE',
   BROADCAST = 'BROADCAST',
 }
+
+export enum MediaAssetType {
+  PHOTO = 'PHOTO',
+  VIDEO_CLIP = 'VIDEO_CLIP',
+  FULL_RECORDING = 'FULL_RECORDING',
+  GRAPHIC = 'GRAPHIC',
+  THUMBNAIL = 'THUMBNAIL',
+}
+
+// Deliberate scope decision (confirmed with the user, not in the original brief text):
+// video is large/long-running and the content usually already lives on YouTube via the
+// Service's Broadcast anyway, so video-type assets never go through an actual
+// Cloudinary upload — they just store a pasted URL. Only these two get a real file
+// upload (POST /media-assets/upload); VIDEO_MEDIA_ASSET_TYPES go through the plain JSON
+// POST /media-assets instead. See MediaAssetsService.
+export const IMAGE_MEDIA_ASSET_TYPES = [
+  MediaAssetType.PHOTO,
+  MediaAssetType.GRAPHIC,
+  MediaAssetType.THUMBNAIL,
+];
+
+export const VIDEO_MEDIA_ASSET_TYPES = [
+  MediaAssetType.VIDEO_CLIP,
+  MediaAssetType.FULL_RECORDING,
+];
