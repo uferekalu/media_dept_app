@@ -7,6 +7,7 @@ import type { Platform } from '@/lib/types/platform';
 import type { Broadcast } from '@/lib/types/broadcast';
 import type { Equipment } from '@/lib/types/equipment';
 import type { EquipmentCheckout } from '@/lib/types/equipment-checkout';
+import type { MediaAsset } from '@/lib/types/media-asset';
 import type {
   BroadcastStatus,
   CrewAssignmentRole,
@@ -14,6 +15,7 @@ import type {
   EquipmentCategory,
   EquipmentCondition,
   EquipmentCurrentStatus,
+  MediaAssetType,
   ServiceStatus,
   StatusLogEntityType,
 } from '@/lib/types/enums';
@@ -41,6 +43,7 @@ export const api = createApi({
     'Broadcast',
     'Equipment',
     'EquipmentCheckout',
+    'MediaAsset',
   ],
   endpoints: (builder) => ({
     // Powers the Dashboard's "Live Now" view.
@@ -337,6 +340,82 @@ export const api = createApi({
         { type: 'EquipmentCheckout', id: `equipment-${equipmentId}` },
       ],
     }),
+
+    // Powers the Media Asset Library, with optional filters — omitted filter keys are
+    // left out of the query string entirely rather than sent empty.
+    getMediaAssets: builder.query<MediaAsset[], { service?: string; type?: MediaAssetType; tag?: string } | void>({
+      query: (filter) => {
+        const params = new URLSearchParams();
+        if (filter?.service) params.set('service', filter.service);
+        if (filter?.type) params.set('type', filter.type);
+        if (filter?.tag) params.set('tag', filter.tag);
+        const qs = params.toString();
+        return `/media-assets${qs ? `?${qs}` : ''}`;
+      },
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((a) => ({ type: 'MediaAsset' as const, id: a._id })),
+              { type: 'MediaAsset' as const, id: 'LIST' },
+            ]
+          : [{ type: 'MediaAsset' as const, id: 'LIST' }],
+    }),
+
+    // Powers the VOD Archive.
+    getFullRecordings: builder.query<MediaAsset[], void>({
+      query: () => '/media-assets/full-recordings',
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((a) => ({ type: 'MediaAsset' as const, id: a._id })),
+              { type: 'MediaAsset' as const, id: 'FULL_RECORDINGS' },
+            ]
+          : [{ type: 'MediaAsset' as const, id: 'FULL_RECORDINGS' }],
+    }),
+
+    // PHOTO/GRAPHIC/THUMBNAIL only — a real Cloudinary upload. FormData body, no
+    // Content-Type header set manually so the browser fills in the multipart boundary
+    // itself (same pattern protocol_dept_app's uploadProtocolMemberPhoto uses).
+    uploadMediaAsset: builder.mutation<
+      MediaAsset,
+      { file: File; type: MediaAssetType; service?: string; uploaded_by: string; tags?: string }
+    >({
+      query: ({ file, ...fields }) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        Object.entries(fields).forEach(([key, value]) => {
+          if (value !== undefined) formData.append(key, value);
+        });
+        return { url: '/media-assets/upload', method: 'POST', body: formData };
+      },
+      invalidatesTags: [{ type: 'MediaAsset', id: 'LIST' }],
+    }),
+
+    // VIDEO_CLIP/FULL_RECORDING only — a pasted URL, no file at all.
+    createMediaAssetLink: builder.mutation<
+      MediaAsset,
+      { type: MediaAssetType; storage_url: string; service?: string; uploaded_by: string; tags?: string[] }
+    >({
+      query: (body) => ({ url: '/media-assets', method: 'POST', body }),
+      invalidatesTags: [{ type: 'MediaAsset', id: 'LIST' }, { type: 'MediaAsset', id: 'FULL_RECORDINGS' }],
+    }),
+
+    updateMediaAsset: builder.mutation<MediaAsset, { id: string; service?: string; tags?: string[] }>({
+      query: ({ id, ...body }) => ({ url: `/media-assets/${id}`, method: 'PATCH', body }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'MediaAsset', id },
+        { type: 'MediaAsset', id: 'LIST' },
+      ],
+    }),
+
+    deleteMediaAsset: builder.mutation<void, string>({
+      query: (id) => ({ url: `/media-assets/${id}`, method: 'DELETE' }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: 'MediaAsset', id },
+        { type: 'MediaAsset', id: 'LIST' },
+        { type: 'MediaAsset', id: 'FULL_RECORDINGS' },
+      ],
+    }),
   }),
 });
 
@@ -367,4 +446,10 @@ export const {
   useCreateEquipmentCheckoutMutation,
   useReturnEquipmentCheckoutMutation,
   useDeleteEquipmentCheckoutMutation,
+  useGetMediaAssetsQuery,
+  useGetFullRecordingsQuery,
+  useUploadMediaAssetMutation,
+  useCreateMediaAssetLinkMutation,
+  useUpdateMediaAssetMutation,
+  useDeleteMediaAssetMutation,
 } = api;

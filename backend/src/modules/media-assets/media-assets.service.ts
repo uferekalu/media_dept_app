@@ -39,7 +39,19 @@ export class MediaAssetsService {
       await this.servicesService.findOne(dto.service);
     }
 
-    const uploadResult = await this.cloudinaryService.uploadImage(file.buffer, 'media-assets');
+    let uploadResult;
+    try {
+      uploadResult = await this.cloudinaryService.uploadImage(file.buffer, 'media-assets');
+    } catch (error) {
+      // Cloudinary rejects non-image bytes (e.g. a text file renamed to .jpg) with its
+      // own {message, http_code: 400} shape — surface that as a clean 400 instead of
+      // letting it fall through as an unhandled 500.
+      const cloudinaryMessage =
+        typeof error === 'object' && error !== null && 'message' in error
+          ? String((error as { message: unknown }).message)
+          : 'Upload failed';
+      throw new BadRequestException(`Cloudinary rejected this file: ${cloudinaryMessage}`);
+    }
 
     return this.mediaAssetModel.create({
       type: dto.type,
