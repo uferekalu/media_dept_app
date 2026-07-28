@@ -291,3 +291,33 @@ export const EQUIPMENT_CONDITION_BADGE_VARIANT: Record<EquipmentCondition, Statu
   [EquipmentCondition.NEEDS_REPAIR]: 'pending',
   [EquipmentCondition.OUT_OF_SERVICE]: 'archived',
 };
+
+export enum MediaAssetType {
+  PHOTO = 'PHOTO',
+  VIDEO_CLIP = 'VIDEO_CLIP',
+  FULL_RECORDING = 'FULL_RECORDING',
+  GRAPHIC = 'GRAPHIC',
+  THUMBNAIL = 'THUMBNAIL',
+}
+
+export const MEDIA_ASSET_TYPE_LABELS: Record<MediaAssetType, string> = {
+  [MediaAssetType.PHOTO]: 'Photo',
+  [MediaAssetType.VIDEO_CLIP]: 'Video Clip',
+  [MediaAssetType.FULL_RECORDING]: 'Full Recording',
+  [MediaAssetType.GRAPHIC]: 'Graphic',
+  [MediaAssetType.THUMBNAIL]: 'Thumbnail',
+};
+
+// Mirrors backend/src/common/enums.ts's IMAGE_MEDIA_ASSET_TYPES/VIDEO_MEDIA_ASSET_TYPES
+// — drives whether the upload form shows a file picker or a URL input for the
+// currently-selected type.
+export const IMAGE_MEDIA_ASSET_TYPES = [
+  MediaAssetType.PHOTO,
+  MediaAssetType.GRAPHIC,
+  MediaAssetType.THUMBNAIL,
+];
+
+export const VIDEO_MEDIA_ASSET_TYPES = [
+  MediaAssetType.VIDEO_CLIP,
+  MediaAssetType.FULL_RECORDING,
+];

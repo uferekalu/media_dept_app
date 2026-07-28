@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { href: '/', label: 'Dashboard' },
   { href: '/my-assignments', label: 'My Assignments' },
   { href: '/equipment', label: 'Equipment' },
+  { href: '/media', label: 'Media Library' },
 ];
 
 export function AppNav() {
