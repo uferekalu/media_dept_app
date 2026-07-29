@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -9,9 +10,21 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiConflictResponse, ApiForbiddenResponse, ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConflictResponse,
+  ApiConsumes,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { MediaTeamMembersService } from './media-team-members.service';
 import { CreateMediaTeamMemberDto } from './dto/create-media-team-member.dto';
 import { UpdateMediaTeamMemberDto } from './dto/update-media-team-member.dto';
@@ -21,6 +34,9 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { MediaTeamMemberRole } from '../../common/enums';
+import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
+
+const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024;
 
 // Every route requires login. Per backend/CLAUDE.md's "Auth & roles" section:
 // - GET (directory) is open to any authenticated role.
@@ -35,7 +51,10 @@ import { MediaTeamMemberRole } from '../../common/enums';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('media-team-members')
 export class MediaTeamMembersController {
-  constructor(private readonly mediaTeamMembersService: MediaTeamMembersService) {}
+  constructor(
+    private readonly mediaTeamMembersService: MediaTeamMembersService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) {}
 
   @Post()
   @Roles(MediaTeamMemberRole.ADMIN)
@@ -75,6 +94,47 @@ export class MediaTeamMembersController {
     }
 
     return this.mediaTeamMembersService.update(id, dto);
+  }
+
+  @Post(':id/photo')
+  @UseInterceptors(
+    FileInterceptor('photo', {
+      limits: { fileSize: MAX_PHOTO_SIZE_BYTES },
+      fileFilter: (_req, file, callback) => {
+        if (!file.mimetype.startsWith('image/')) {
+          callback(new BadRequestException('Only image files are allowed'), false);
+          return;
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: { type: 'object', properties: { photo: { type: 'string', format: 'binary' } } },
+  })
+  @ApiOperation({ summary: 'Upload a profile photo — self, or an ADMIN editing anyone (max 5MB image)' })
+  @ApiForbiddenResponse({ description: 'Only an ADMIN can upload a photo for another member' })
+  async uploadPhoto(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    this.assertSelfOrAdmin(id, user, 'You can only update your own photo');
+    if (!file) {
+      throw new BadRequestException('No photo file provided');
+    }
+
+    const uploadResult = await this.cloudinaryService.uploadImage(file.buffer, 'media-team-members');
+    return this.mediaTeamMembersService.setPhoto(id, uploadResult.secure_url);
+  }
+
+  @Delete(':id/photo')
+  @ApiOperation({ summary: 'Remove a profile photo — self, or an ADMIN editing anyone' })
+  @ApiForbiddenResponse({ description: "Only an ADMIN can remove another member's photo" })
+  async removePhoto(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    this.assertSelfOrAdmin(id, user, 'You can only remove your own photo');
+    return this.mediaTeamMembersService.removePhoto(id);
   }
 
   @Delete(':id')

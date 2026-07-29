@@ -15,6 +15,12 @@ export class MediaTeamMember {
   @Prop({ required: true, enum: MediaTeamMemberRole, default: MediaTeamMemberRole.MEMBER })
   role: MediaTeamMemberRole;
 
+  // Optional Cloudinary URL for a profile photo, set via
+  // POST/DELETE /media-team-members/:id/photo. Mirrors protocol_dept_app's
+  // ProtocolMember.image_url exactly.
+  @Prop({ trim: true })
+  image_url?: string;
+
   // e.g. Camera Operation, Audio, Streaming/Encoding, ProPresenter/Graphics,
   // Photography, Video Editing, Social Media — used when building crew assignments
   // (Phase 3), not a permission mechanism.
