@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronsLeft, ChevronsRight, Images, LayoutDashboard, ListChecks, Package } from 'lucide-react';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -22,10 +23,13 @@ const STORAGE_KEY = 'media-department:mobile-nav-expanded';
 // Below `sm` only (see app-nav.tsx, which is desktop/tablet-only) — a collapsible
 // icon-rail sidebar flush against the left edge, mirroring protocol_dept_app's
 // mobile-nav-drawer.tsx exactly. Collapsed, it sits side-by-side with page content
-// (content reserves exactly its width via the `pl-14` wrapper in app/providers.tsx).
-// Expanded, it overlays on top of content instead of pushing/resizing it.
+// (content reserves exactly its width via the `pl-14` wrapper in app/providers.tsx,
+// itself conditional on the same currentUser check below). Expanded, it overlays on
+// top of content instead of pushing/resizing it. Must only render for a confirmed
+// logged-in identity — otherwise the internal nav leaks through on /login itself.
 export function MobileNavDrawer() {
   const pathname = usePathname();
+  const { data: currentUser } = useCurrentUser();
   const [expanded, setExpanded] = useState(false);
   const navRef = useRef<HTMLElement>(null);
 
@@ -61,6 +65,8 @@ export function MobileNavDrawer() {
     document.addEventListener('pointerdown', handlePointerDown);
     return () => document.removeEventListener('pointerdown', handlePointerDown);
   }, [expanded]);
+
+  if (!currentUser) return null;
 
   return (
     <nav

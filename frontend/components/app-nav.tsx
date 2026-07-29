@@ -2,13 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { cn } from '@/lib/utils';
 
 // Desktop/tablet only (sm and up) — a horizontally-scrolling tab row, mirroring
 // protocol_dept_app's app-nav.tsx exactly. Below `sm`, MobileNavDrawer takes over
-// instead. Grows as each phase adds a screen — no role-based filtering yet since
-// auth doesn't exist until Phase 7 (compare protocol_dept_app's `elevatedOnly` links,
-// which land here the same way once roles exist).
+// instead. Grows as each phase adds a screen — no role-based filtering yet (that's a
+// later polish pass on top of Phase 7's guards, same as protocol_dept_app's own
+// staging), but it must only render for a confirmed logged-in identity — otherwise the
+// internal nav leaks through on /login itself for a logged-out visitor.
 const NAV_LINKS = [
   { href: '/', label: 'Dashboard' },
   { href: '/my-assignments', label: 'My Assignments' },
@@ -18,6 +20,9 @@ const NAV_LINKS = [
 
 export function AppNav() {
   const pathname = usePathname();
+  const { data: currentUser } = useCurrentUser();
+
+  if (!currentUser) return null;
 
   return (
     <nav
