@@ -25,7 +25,15 @@ import type {
   ServiceStatus,
   StatusLogEntityType,
 } from '@/lib/types/enums';
-import type { AuthenticatedMediaTeamMember, LoginInput, LoginResponse } from '@/lib/types/auth';
+import type {
+  AuthenticatedMediaTeamMember,
+  ChangePasswordInput,
+  ForgotPasswordInput,
+  LoginInput,
+  LoginResponse,
+  ResetPasswordInput,
+  SignupInput,
+} from '@/lib/types/auth';
 import type { RootState } from './store';
 import { clearToken } from './slices/authSlice';
 
@@ -40,8 +48,8 @@ const rawBaseQuery = fetchBaseQuery({
   },
 });
 
-// Any 401 (expired token, or — once the backend's guards land — a route that now
-// requires auth) clears the session, so a stale/invalid token can't linger and every
+// Any 401 (expired token, or a guarded route rejecting an unauthenticated/wrong-role
+// request) clears the session, so a stale/invalid token can't linger and every
 // consumer of useCurrentUser() reacts the same way an explicit logout would produce.
 const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
   args,
@@ -83,6 +91,22 @@ export const api = createApi({
 
     getCurrentUser: builder.query<AuthenticatedMediaTeamMember, void>({
       query: () => '/auth/me',
+    }),
+
+    signup: builder.mutation<LoginResponse, SignupInput>({
+      query: (body) => ({ url: '/auth/signup', method: 'POST', body }),
+    }),
+
+    changePassword: builder.mutation<void, ChangePasswordInput>({
+      query: (body) => ({ url: '/auth/change-password', method: 'PATCH', body }),
+    }),
+
+    forgotPassword: builder.mutation<void, ForgotPasswordInput>({
+      query: (body) => ({ url: '/auth/forgot-password', method: 'POST', body }),
+    }),
+
+    resetPassword: builder.mutation<void, ResetPasswordInput>({
+      query: (body) => ({ url: '/auth/reset-password', method: 'POST', body }),
     }),
 
     // Powers the Dashboard's "Live Now" view.
@@ -461,6 +485,10 @@ export const api = createApi({
 export const {
   useLoginMutation,
   useGetCurrentUserQuery,
+  useSignupMutation,
+  useChangePasswordMutation,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
   useGetLiveNowServicesQuery,
   useGetServicesQuery,
   useGetServiceQuery,

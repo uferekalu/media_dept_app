@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { loginFormSchema, type LoginFormValues } from '@/lib/schemas/auth';
-import { useLoginMutation } from '@/lib/redux/api';
+import { signupFormSchema, type SignupFormValues } from '@/lib/schemas/auth';
+import { useSignupMutation } from '@/lib/redux/api';
 import { useAppDispatch } from '@/lib/redux/hooks';
 import { AUTH_TOKEN_STORAGE_KEY, setToken } from '@/lib/redux/slices/authSlice';
 import { Button } from '@/components/ui/button';
@@ -14,50 +14,61 @@ import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 
-// Login — Phase 7 (docs/MEDIA_APP_BRIEF.md Section 7). Phone number + password
-// against POST /auth/login; on success, the token is both dispatched into authSlice
-// (the app's live source of truth) and persisted to localStorage so the session
-// survives a reload — see components/auth-guard.tsx for the read side.
-export default function LoginPage() {
+// Sign Up — self-service account creation (docs/MEDIA_APP_BRIEF.md Section 7): the
+// department announces the need for crew, interested people join via this screen
+// rather than an Admin creating their account. Always lands as MEMBER; role is never a
+// field here. Same auto-login pattern as login: on success, the new member is
+// dispatched straight into a logged-in session, matching POST /auth/signup's response
+// shape (identical to login's).
+export default function SignupPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const [login, { isLoading }] = useLoginMutation();
+  const [signup, { isLoading }] = useSignupMutation();
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginFormSchema),
-    defaultValues: { phone_number: '', password: '' },
+  } = useForm<SignupFormValues>({
+    resolver: zodResolver(signupFormSchema),
+    defaultValues: { full_name: '', phone_number: '', password: '', confirm_password: '' },
   });
 
-  async function onSubmit(values: LoginFormValues) {
+  async function onSubmit(values: SignupFormValues) {
     try {
-      const result = await login(values).unwrap();
+      const result = await signup({
+        full_name: values.full_name,
+        phone_number: values.phone_number,
+        password: values.password,
+      }).unwrap();
       dispatch(setToken(result.access_token));
       window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, result.access_token);
-      toast.success(`Welcome back, ${result.media_team_member.full_name}`);
+      toast.success(`Welcome, ${result.media_team_member.full_name}`);
       router.push('/');
     } catch (error) {
       const message =
         error && typeof error === 'object' && 'data' in error
-          ? (error.data as { message?: string })?.message
+          ? (error.data as { message?: string | string[] })?.message
           : undefined;
-      toast.error(message ?? 'Could not log in. Please try again.');
+      toast.error(
+        Array.isArray(message) ? message.join(', ') : (message ?? 'Could not sign up. Please try again.'),
+      );
     }
   }
 
   return (
     <main className="mx-auto flex max-w-sm flex-col px-4 py-16 sm:py-24">
       <div className="mb-8 text-center">
-        <h1 className="text-heading-lg text-foreground">Log in</h1>
+        <h1 className="text-heading-lg text-foreground">Join the Media Department</h1>
         <p className="text-body-sm text-muted-foreground">
-          Enter your phone number and password.
+          Create your own account to get started.
         </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+        <Field label="Full name" error={errors.full_name?.message}>
+          <Input {...register('full_name')} placeholder="Tolu Bankole" autoComplete="name" />
+        </Field>
         <Field label="Phone number" error={errors.phone_number?.message}>
           <Input
             {...register('phone_number')}
@@ -67,24 +78,21 @@ export default function LoginPage() {
           />
         </Field>
         <Field label="Password" error={errors.password?.message}>
-          <PasswordInput {...register('password')} autoComplete="current-password" />
+          <PasswordInput {...register('password')} autoComplete="new-password" />
+        </Field>
+        <Field label="Confirm password" error={errors.confirm_password?.message}>
+          <PasswordInput {...register('confirm_password')} autoComplete="new-password" />
         </Field>
 
-        <div className="text-right">
-          <Link href="/forgot-password" className="text-body-sm text-primary hover:underline">
-            Forgot password?
-          </Link>
-        </div>
-
         <Button type="submit" size="lg" className="mt-2 h-11 text-body font-semibold" disabled={isLoading}>
-          {isLoading ? 'Logging in…' : 'Log in'}
+          {isLoading ? 'Creating account…' : 'Sign up'}
         </Button>
       </form>
 
       <p className="text-body-sm mt-6 text-center text-muted-foreground">
-        New to the Media Department?{' '}
-        <Link href="/signup" className="text-primary hover:underline">
-          Sign up
+        Already have an account?{' '}
+        <Link href="/login" className="text-primary hover:underline">
+          Log in
         </Link>
       </p>
     </main>
