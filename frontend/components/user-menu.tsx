@@ -35,7 +35,7 @@ export function UserMenu() {
   return (
     <div className="flex items-center gap-1.5 sm:gap-2">
       <Link
-        href="/change-password"
+        href="/profile"
         className="hidden text-right leading-tight hover:opacity-80 sm:block"
       >
         <p className="text-body-sm font-medium text-foreground">{user.full_name}</p>

@@ -71,3 +71,15 @@ export const resetPasswordFormSchema = z
   });
 
 export type ResetPasswordFormValues = z.infer<typeof resetPasswordFormSchema>;
+
+// /team/[id] self-edit — full_name/phone_number required. `skills` is entered as a
+// comma-separated string in the form and split into an array on submit (same pattern
+// as the media asset upload form's tags field), rather than a full tag-picker UI. No
+// password field — that's the dedicated /change-password page, not this form.
+export const profileFormSchema = z.object({
+  full_name: z.string().min(1, 'Full name is required'),
+  phone_number: z.string().min(1, 'Phone number is required'),
+  skills: z.string().optional(),
+});
+
+export type ProfileFormValues = z.infer<typeof profileFormSchema>;
