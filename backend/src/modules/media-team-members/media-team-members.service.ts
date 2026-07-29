@@ -151,6 +151,31 @@ export class MediaTeamMembersService {
     }
   }
 
+  // $set/$unset rather than routing through update()/UpdateMediaTeamMemberDto — avoids
+  // adding an image_url field to that DTO (it's never user-typed, only ever set to a
+  // Cloudinary URL this backend generated itself) and lets removal $unset the field
+  // outright instead of fighting `undefined` being stripped from a Mongoose update
+  // payload. Mirrors protocol_dept_app's ProtocolMembersService.setPhoto()/removePhoto().
+  async setPhoto(id: string, imageUrl: string): Promise<MediaTeamMemberDocument> {
+    const member = await this.mediaTeamMemberModel
+      .findByIdAndUpdate(id, { image_url: imageUrl }, { new: true })
+      .exec();
+    if (!member) {
+      throw new NotFoundException(`Media team member ${id} not found`);
+    }
+    return member;
+  }
+
+  async removePhoto(id: string): Promise<MediaTeamMemberDocument> {
+    const member = await this.mediaTeamMemberModel
+      .findByIdAndUpdate(id, { $unset: { image_url: 1 } }, { new: true })
+      .exec();
+    if (!member) {
+      throw new NotFoundException(`Media team member ${id} not found`);
+    }
+    return member;
+  }
+
   private translateDuplicateKeyError(error: unknown, phoneNumber?: string): Error {
     const isDuplicateKeyError =
       typeof error === 'object' &&
