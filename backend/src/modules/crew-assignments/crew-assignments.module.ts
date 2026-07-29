@@ -7,12 +7,14 @@ import { CrewAssignmentsService } from './crew-assignments.service';
 import { CrewAssignment, CrewAssignmentSchema } from './schemas/crew-assignment.schema';
 import { ServicesModule } from '../services/services.module';
 import { MediaTeamMembersModule } from '../media-team-members/media-team-members.module';
+import { TermiiModule } from '../../common/termii/termii.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: CrewAssignment.name, schema: CrewAssignmentSchema }]),
     ServicesModule,
     MediaTeamMembersModule,
+    TermiiModule,
   ],
   controllers: [
     CrewAssignmentsController,
