@@ -12,7 +12,8 @@ import { UpdateCrewAssignmentDto } from './dto/update-crew-assignment.dto';
 import { UpdateCrewAssignmentStatusDto } from './dto/update-crew-assignment-status.dto';
 import { ServicesService } from '../services/services.service';
 import { MediaTeamMembersService } from '../media-team-members/media-team-members.service';
-import { VALID_CREW_ASSIGNMENT_STATUS_TRANSITIONS } from '../../common/enums';
+import { TermiiService } from '../../common/termii/termii.service';
+import { CREW_ASSIGNMENT_ROLE_LABELS, VALID_CREW_ASSIGNMENT_STATUS_TRANSITIONS } from '../../common/enums';
 
 const MONGO_DUPLICATE_KEY_ERROR = 11000;
 
@@ -22,12 +23,13 @@ export class CrewAssignmentsService {
     @InjectModel(CrewAssignment.name) private crewAssignmentModel: Model<CrewAssignmentDocument>,
     private readonly servicesService: ServicesService,
     private readonly mediaTeamMembersService: MediaTeamMembersService,
+    private readonly termiiService: TermiiService,
   ) {}
 
   async create(dto: CreateCrewAssignmentDto): Promise<CrewAssignmentDocument> {
     // Referential integrity: a bad id 404s here instead of silently creating a
     // dangling reference.
-    await this.servicesService.findOne(dto.service);
+    const service = await this.servicesService.findOne(dto.service);
     await this.mediaTeamMembersService.findOne(dto.media_team_member);
 
     const existing = await this.crewAssignmentModel
@@ -39,11 +41,45 @@ export class CrewAssignmentsService {
       );
     }
 
+    let assignment: CrewAssignmentDocument;
     try {
-      return await this.crewAssignmentModel.create(dto);
+      assignment = await this.crewAssignmentModel.create(dto);
     } catch (error) {
       throw this.translateDuplicateKeyError(error, dto.role);
     }
+
+    // Best-effort — see notifyAssignment()'s comment. A notification failure must
+    // never fail assignment creation itself.
+    try {
+      await this.notifyAssignment(assignment, service.name);
+    } catch {
+      // swallowed deliberately
+    }
+
+    return assignment;
+  }
+
+  // TermiiService.sendSms() already never throws on a delivery failure — this method's
+  // own try/catch at the call site above is defense in depth for the lookup here
+  // (media team member), which in practice can't fail since the id was just validated a
+  // few lines up in create(), but a notification is never worth risking the assignment
+  // itself over. Mirrors protocol_dept_app's AssignmentsService.notifyAssignment().
+  private async notifyAssignment(
+    assignment: CrewAssignmentDocument,
+    serviceName: string,
+  ): Promise<void> {
+    const member = await this.mediaTeamMembersService.findOne(
+      assignment.media_team_member.toString(),
+    );
+
+    const label = CREW_ASSIGNMENT_ROLE_LABELS[assignment.role];
+    const when = new Date(assignment.call_time).toLocaleString('en-NG', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+    const message = `Hi ${member.full_name}, you've been assigned: ${label} for ${serviceName} — call time ${when}. Check the Media Department app for details.`;
+
+    await this.termiiService.sendSms(member.phone_number, message);
   }
 
   findAll(): Promise<CrewAssignmentDocument[]> {

@@ -1,16 +1,28 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
-import { ApiBadRequestResponse, ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto/create-service.dto';
 import { UpdateServiceDto } from './dto/update-service.dto';
 import { UpdateServiceStatusDto } from './dto/update-service-status.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { MediaTeamMemberRole } from '../../common/enums';
 
+const ELEVATED_ROLES = [MediaTeamMemberRole.ADMIN, MediaTeamMemberRole.DIRECTOR];
+
+// Every route requires login; write routes (create/edit/delete/status changes) are
+// ADMIN/DIRECTOR-only per backend/CLAUDE.md's "Auth & roles" section — reading is open
+// to any authenticated role.
 @ApiTags('services')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('services')
 export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 
   @Post()
+  @Roles(...ELEVATED_ROLES)
   @ApiOperation({ summary: 'Create a service (starts at status PLANNED)' })
   create(@Body() dto: CreateServiceDto) {
     return this.servicesService.create(dto);
@@ -48,6 +60,7 @@ export class ServicesController {
   }
 
   @Patch(':id')
+  @Roles(...ELEVATED_ROLES)
   @ApiOperation({ summary: 'Update a service\'s details (not its status — see Phase 2)' })
   @ApiNotFoundResponse({ description: 'Service not found' })
   update(@Param('id') id: string, @Body() dto: UpdateServiceDto) {
@@ -55,6 +68,7 @@ export class ServicesController {
   }
 
   @Delete(':id')
+  @Roles(...ELEVATED_ROLES)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a service' })
   @ApiNotFoundResponse({ description: 'Service not found' })
@@ -63,6 +77,7 @@ export class ServicesController {
   }
 
   @Patch(':id/status')
+  @Roles(...ELEVATED_ROLES)
   @ApiOperation({ summary: 'Move a service to its next status — validated against the state machine, writes a StatusLog entry' })
   @ApiBadRequestResponse({ description: 'The requested status is not a valid next step from the current status' })
   @ApiNotFoundResponse({ description: 'Service not found' })

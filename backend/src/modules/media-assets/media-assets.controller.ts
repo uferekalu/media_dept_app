@@ -11,20 +11,26 @@ import {
   Post,
   Query,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBadRequestResponse, ApiBody, ApiConsumes, ApiNotFoundResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiBody, ApiConsumes, ApiNotFoundResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { MediaAssetsService } from './media-assets.service';
 import { UploadMediaAssetDto } from './dto/upload-media-asset.dto';
 import { CreateMediaAssetLinkDto } from './dto/create-media-asset-link.dto';
 import { UpdateMediaAssetDto } from './dto/update-media-asset.dto';
 import { MediaAssetType } from '../../common/enums';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 
-// Unguarded for now, consistent with every other module until Phase 7 (Auth).
+// Every route requires login, but no @Roles()/RolesGuard — per backend/CLAUDE.md,
+// MediaAsset isn't in the ADMIN/DIRECTOR-elevated list; a MEMBER can create (and, by
+// the same "shared team resource" reasoning, edit/delete) media assets same as anyone.
 @ApiTags('media-assets')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('media-assets')
 export class MediaAssetsController {
   constructor(private readonly mediaAssetsService: MediaAssetsService) {}

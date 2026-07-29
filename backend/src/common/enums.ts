@@ -79,6 +79,19 @@ export enum CrewAssignmentRole {
   PHOTOGRAPHER = 'PHOTOGRAPHER',
 }
 
+// Mirrors frontend/lib/types/enums.ts's own copy — used server-side only for the
+// crew-assignment SMS notification text (CrewAssignmentsService.notifyAssignment()).
+export const CREW_ASSIGNMENT_ROLE_LABELS: Record<CrewAssignmentRole, string> = {
+  [CrewAssignmentRole.DIRECTOR_SWITCHER]: 'Director / Switcher',
+  [CrewAssignmentRole.CAMERA_1]: 'Camera 1',
+  [CrewAssignmentRole.CAMERA_2]: 'Camera 2',
+  [CrewAssignmentRole.CAMERA_3]: 'Camera 3',
+  [CrewAssignmentRole.AUDIO]: 'Audio',
+  [CrewAssignmentRole.STREAMING_ENGINEER]: 'Streaming Engineer',
+  [CrewAssignmentRole.GRAPHICS_OPERATOR]: 'Graphics / ProPresenter',
+  [CrewAssignmentRole.PHOTOGRAPHER]: 'Photographer',
+};
+
 export enum CrewAssignmentStatus {
   PENDING = 'PENDING',
   CONFIRMED = 'CONFIRMED',

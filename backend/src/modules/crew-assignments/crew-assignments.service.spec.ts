@@ -6,11 +6,13 @@ import { CrewAssignment } from './schemas/crew-assignment.schema';
 import { CrewAssignmentRole, CrewAssignmentStatus } from '../../common/enums';
 import { ServicesService } from '../services/services.service';
 import { MediaTeamMembersService } from '../media-team-members/media-team-members.service';
+import { TermiiService } from '../../common/termii/termii.service';
 
 describe('CrewAssignmentsService', () => {
   let service: CrewAssignmentsService;
   let servicesService: { findOne: jest.Mock };
   let mediaTeamMembersService: { findOne: jest.Mock };
+  let termiiService: { sendSms: jest.Mock };
   let model: {
     create: jest.Mock;
     find: jest.Mock;
@@ -29,8 +31,15 @@ describe('CrewAssignmentsService', () => {
       findByIdAndUpdate: jest.fn(),
       findByIdAndDelete: jest.fn(),
     };
-    servicesService = { findOne: jest.fn().mockResolvedValue({ _id: 'service-id' }) };
-    mediaTeamMembersService = { findOne: jest.fn().mockResolvedValue({ _id: 'member-id' }) };
+    servicesService = {
+      findOne: jest.fn().mockResolvedValue({ _id: 'service-id', name: 'Sunday Service' }),
+    };
+    mediaTeamMembersService = {
+      findOne: jest
+        .fn()
+        .mockResolvedValue({ _id: 'member-id', full_name: 'Tolu Bankole', phone_number: '+2348033334444' }),
+    };
+    termiiService = { sendSms: jest.fn().mockResolvedValue(undefined) };
 
     const moduleRef: TestingModule = await Test.createTestingModule({
       providers: [
@@ -38,6 +47,7 @@ describe('CrewAssignmentsService', () => {
         { provide: getModelToken(CrewAssignment.name), useValue: model },
         { provide: ServicesService, useValue: servicesService },
         { provide: MediaTeamMembersService, useValue: mediaTeamMembersService },
+        { provide: TermiiService, useValue: termiiService },
       ],
     }).compile();
 
