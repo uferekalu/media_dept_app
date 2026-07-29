@@ -7,7 +7,7 @@ import {
 } from '@reduxjs/toolkit/query/react';
 import type { Service } from '@/lib/types/service';
 import type { StatusLog } from '@/lib/types/status-log';
-import type { MediaTeamMember } from '@/lib/types/media-team-member';
+import type { MediaTeamMember, UpdateMediaTeamMemberInput } from '@/lib/types/media-team-member';
 import type { CrewAssignment } from '@/lib/types/crew-assignment';
 import type { Platform } from '@/lib/types/platform';
 import type { Broadcast } from '@/lib/types/broadcast';
@@ -91,6 +91,10 @@ export const api = createApi({
 
     getCurrentUser: builder.query<AuthenticatedMediaTeamMember, void>({
       query: () => '/auth/me',
+      // A fixed 'ME' id (there's no per-invocation argument to key off) — lets
+      // updateMediaTeamMember invalidate it whenever it might have just edited the
+      // signed-in user's own record, so the header picks up a name/role change.
+      providesTags: [{ type: 'MediaTeamMember', id: 'ME' }],
     }),
 
     signup: builder.mutation<LoginResponse, SignupInput>({
@@ -179,6 +183,47 @@ export const api = createApi({
               { type: 'MediaTeamMember' as const, id: 'LIST' },
             ]
           : [{ type: 'MediaTeamMember' as const, id: 'LIST' }],
+    }),
+
+    getMediaTeamMember: builder.query<MediaTeamMember, string>({
+      query: (id) => `/media-team-members/${id}`,
+      providesTags: (_result, _error, id) => [{ type: 'MediaTeamMember', id }],
+    }),
+
+    updateMediaTeamMember: builder.mutation<
+      MediaTeamMember,
+      { id: string } & UpdateMediaTeamMemberInput
+    >({
+      query: ({ id, ...body }) => ({ url: `/media-team-members/${id}`, method: 'PATCH', body }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'MediaTeamMember', id },
+        { type: 'MediaTeamMember', id: 'LIST' },
+        { type: 'MediaTeamMember', id: 'ME' },
+      ],
+    }),
+
+    // FormData body — fetchBaseQuery leaves it untouched and lets the browser set the
+    // multipart boundary itself; setting Content-Type manually here would omit it.
+    uploadMediaTeamMemberPhoto: builder.mutation<MediaTeamMember, { id: string; file: File }>({
+      query: ({ id, file }) => {
+        const formData = new FormData();
+        formData.append('photo', file);
+        return { url: `/media-team-members/${id}/photo`, method: 'POST', body: formData };
+      },
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'MediaTeamMember', id },
+        { type: 'MediaTeamMember', id: 'LIST' },
+        { type: 'MediaTeamMember', id: 'ME' },
+      ],
+    }),
+
+    removeMediaTeamMemberPhoto: builder.mutation<MediaTeamMember, string>({
+      query: (id) => ({ url: `/media-team-members/${id}/photo`, method: 'DELETE' }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: 'MediaTeamMember', id },
+        { type: 'MediaTeamMember', id: 'LIST' },
+        { type: 'MediaTeamMember', id: 'ME' },
+      ],
     }),
 
     // Powers the Crew Assignment Board (brief Section 5).
@@ -496,6 +541,10 @@ export const {
   useGetServiceTimelineQuery,
   useUpdateServiceStatusMutation,
   useGetMediaTeamMembersQuery,
+  useGetMediaTeamMemberQuery,
+  useUpdateMediaTeamMemberMutation,
+  useUploadMediaTeamMemberPhotoMutation,
+  useRemoveMediaTeamMemberPhotoMutation,
   useGetCrewAssignmentsByServiceQuery,
   useGetCrewAssignmentsByMediaTeamMemberQuery,
   useCreateCrewAssignmentMutation,
