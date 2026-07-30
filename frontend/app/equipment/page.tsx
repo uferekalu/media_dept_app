@@ -65,21 +65,21 @@ export default function EquipmentPage() {
         {equipment && equipment.length > 0 && <Badge>{equipment.length} items</Badge>}
       </div>
 
-      <div className="mb-6 flex flex-col gap-2 rounded-xl border border-border bg-card p-4">
+      <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <p className="text-heading-md text-foreground">Add equipment</p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
           <div className="flex-1">
-            <Label className="mb-1">Name</Label>
+            <Label className="mb-1.5">Name</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Canon C70 #2"
             />
           </div>
-          <div>
-            <Label className="mb-1">Category</Label>
+          <div className="w-full sm:w-auto">
+            <Label className="mb-1.5">Category</Label>
             <Select value={category} onValueChange={(v) => setCategory(v as EquipmentCategory)}>
-              <SelectTrigger className="min-w-36">
+              <SelectTrigger className="w-full sm:w-auto sm:min-w-40">
                 <SelectValue>{() => EQUIPMENT_CATEGORY_LABELS[category]}</SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -92,10 +92,14 @@ export default function EquipmentPage() {
             </Select>
           </div>
           <div className="flex-1">
-            <Label className="mb-1">Serial number (optional)</Label>
+            <Label className="mb-1.5">Serial number (optional)</Label>
             <Input value={serialNumber} onChange={(e) => setSerialNumber(e.target.value)} />
           </div>
-          <Button onClick={handleAdd} disabled={!name.trim() || isCreating}>
+          <Button
+            onClick={handleAdd}
+            disabled={!name.trim() || isCreating}
+            className="w-full sm:w-auto"
+          >
             Add
           </Button>
         </div>
