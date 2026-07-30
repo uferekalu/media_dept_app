@@ -78,14 +78,14 @@ export default function MediaLibraryPage() {
         <MediaAssetUploadForm />
       </div>
 
-      <div className="mb-4 flex flex-wrap items-end gap-3">
-        <div>
-          <Label className="mb-1">Type</Label>
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="w-full sm:w-auto">
+          <Label className="mb-1.5">Type</Label>
           <Select
             value={typeFilter ?? ALL_TYPES}
             onValueChange={(v) => setTypeFilter(!v || v === ALL_TYPES ? null : (v as MediaAssetType))}
           >
-            <SelectTrigger className="min-w-40">
+            <SelectTrigger className="w-full sm:w-auto sm:min-w-40">
               <SelectValue>
                 {(value: string | null) =>
                   !value || value === ALL_TYPES ? 'All types' : MEDIA_ASSET_TYPE_LABELS[value as MediaAssetType]
@@ -102,13 +102,13 @@ export default function MediaLibraryPage() {
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <Label className="mb-1">Service</Label>
+        <div className="w-full sm:w-auto">
+          <Label className="mb-1.5">Service</Label>
           <Select
             value={serviceFilter ?? ALL_SERVICES}
             onValueChange={(v) => setServiceFilter(v === ALL_SERVICES ? null : v)}
           >
-            <SelectTrigger className="min-w-44">
+            <SelectTrigger className="w-full sm:w-auto sm:min-w-44">
               <SelectValue>
                 {(value: string | null) =>
                   !value || value === ALL_SERVICES
@@ -128,7 +128,7 @@ export default function MediaLibraryPage() {
           </Select>
         </div>
         <div className="flex-1">
-          <Label className="mb-1">Search tags</Label>
+          <Label className="mb-1.5">Search tags</Label>
           <Input value={tagSearch} onChange={(e) => setTagSearch(e.target.value)} placeholder="e.g. faith series" />
         </div>
       </div>

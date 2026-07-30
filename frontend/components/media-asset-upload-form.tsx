@@ -99,14 +99,14 @@ export function MediaAssetUploadForm() {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
+    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
       <p className="text-heading-md text-foreground">Add media</p>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-        <div>
-          <Label className="mb-1">Type</Label>
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="w-full sm:w-auto">
+          <Label className="mb-1.5">Type</Label>
           <Select value={type} onValueChange={(v) => v && setType(v as MediaAssetType)}>
-            <SelectTrigger className="min-w-40">
+            <SelectTrigger className="w-full sm:w-auto sm:min-w-40">
               <SelectValue>{() => MEDIA_ASSET_TYPE_LABELS[type]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -119,10 +119,10 @@ export function MediaAssetUploadForm() {
           </Select>
         </div>
 
-        <div>
-          <Label className="mb-1">Service (optional)</Label>
+        <div className="w-full sm:w-auto">
+          <Label className="mb-1.5">Service (optional)</Label>
           <Select value={serviceId} onValueChange={setServiceId}>
-            <SelectTrigger className="min-w-44">
+            <SelectTrigger className="w-full sm:w-auto sm:min-w-44">
               <SelectValue>
                 {(value: string | null) =>
                   services?.find((s) => s._id === value)?.name ?? 'None'
@@ -141,27 +141,27 @@ export function MediaAssetUploadForm() {
 
         {isImageType ? (
           <div className="flex-1">
-            <Label className="mb-1">File (image, max 10MB)</Label>
+            <Label className="mb-1.5">File (image, max 10MB)</Label>
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              className="text-body-sm block w-full cursor-pointer rounded-lg border border-input bg-transparent px-2.5 py-1.5 file:mr-2 file:cursor-pointer file:rounded-md file:border-0 file:bg-primary file:px-2 file:py-1 file:text-primary-foreground"
+              className="text-body-sm block h-11 w-full cursor-pointer rounded-xl border border-input bg-transparent px-3 py-2 shadow-xs file:mr-3 file:h-full file:cursor-pointer file:rounded-lg file:border-0 file:bg-primary file:px-3 file:text-primary-foreground"
             />
           </div>
         ) : (
           <div className="flex-1">
-            <Label className="mb-1">URL (e.g. YouTube link)</Label>
+            <Label className="mb-1.5">URL (e.g. YouTube link)</Label>
             <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." />
           </div>
         )}
 
         <div className="flex-1">
-          <Label className="mb-1">Tags (comma-separated, optional)</Label>
+          <Label className="mb-1.5">Tags (comma-separated, optional)</Label>
           <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="faith series, pastor adeyemi" />
         </div>
 
-        <Button onClick={handleSubmit} disabled={isLoading || !currentUserId}>
+        <Button onClick={handleSubmit} disabled={isLoading || !currentUserId} className="w-full sm:w-auto">
           Add
         </Button>
       </div>

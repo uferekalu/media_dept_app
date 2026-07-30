@@ -69,14 +69,14 @@ export default function SocialPostsPage() {
         <SocialPostCreateForm />
       </div>
 
-      <div className="mb-4 flex flex-wrap items-end gap-3">
-        <div>
-          <Label className="mb-1">Platform</Label>
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="w-full sm:w-auto">
+          <Label className="mb-1.5">Platform</Label>
           <Select
             value={platformFilter ?? ALL_PLATFORMS}
             onValueChange={(v) => setPlatformFilter(!v || v === ALL_PLATFORMS ? null : v)}
           >
-            <SelectTrigger className="min-w-40">
+            <SelectTrigger className="w-full sm:w-auto sm:min-w-40">
               <SelectValue>
                 {(value: string | null) =>
                   !value || value === ALL_PLATFORMS
@@ -96,15 +96,15 @@ export default function SocialPostsPage() {
           </Select>
         </div>
 
-        <div>
-          <Label className="mb-1">Status</Label>
+        <div className="w-full sm:w-auto">
+          <Label className="mb-1.5">Status</Label>
           <Select
             value={statusFilter ?? ALL_STATUSES}
             onValueChange={(v) =>
               setStatusFilter(!v || v === ALL_STATUSES ? null : (v as SocialPostStatus))
             }
           >
-            <SelectTrigger className="min-w-36">
+            <SelectTrigger className="w-full sm:w-auto sm:min-w-36">
               <SelectValue>
                 {(value: string | null) =>
                   !value || value === ALL_STATUSES

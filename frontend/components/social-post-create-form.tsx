@@ -66,14 +66,14 @@ export function SocialPostCreateForm() {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
+    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
       <p className="text-heading-md text-foreground">Draft a social post</p>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-        <div>
-          <Label className="mb-1">Media asset</Label>
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="w-full sm:w-auto">
+          <Label className="mb-1.5">Media asset</Label>
           <Select value={mediaAssetId} onValueChange={setMediaAssetId}>
-            <SelectTrigger className="min-w-48">
+            <SelectTrigger className="w-full sm:w-auto sm:min-w-48">
               <SelectValue>
                 {(value: string | null) => {
                   const asset = mediaAssets?.find((a) => a._id === value);
@@ -94,10 +94,10 @@ export function SocialPostCreateForm() {
           </Select>
         </div>
 
-        <div>
-          <Label className="mb-1">Platform</Label>
+        <div className="w-full sm:w-auto">
+          <Label className="mb-1.5">Platform</Label>
           <Select value={platformId} onValueChange={setPlatformId}>
-            <SelectTrigger className="min-w-40">
+            <SelectTrigger className="w-full sm:w-auto sm:min-w-40">
               <SelectValue>
                 {(value: string | null) => {
                   const platform = platforms?.find((p) => p._id === value);
@@ -115,18 +115,18 @@ export function SocialPostCreateForm() {
           </Select>
         </div>
 
-        <div>
-          <Label className="mb-1">Scheduled for</Label>
+        <div className="w-full sm:w-auto">
+          <Label className="mb-1.5">Scheduled for</Label>
           <Input
             type="datetime-local"
-            className="w-auto"
+            className="w-full sm:w-auto"
             value={scheduledTime}
             onChange={(e) => setScheduledTime(e.target.value)}
           />
         </div>
 
         <div className="flex-1">
-          <Label className="mb-1">Caption</Label>
+          <Label className="mb-1.5">Caption</Label>
           <Input
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
@@ -134,7 +134,7 @@ export function SocialPostCreateForm() {
           />
         </div>
 
-        <Button onClick={handleSubmit} disabled={isLoading}>
+        <Button onClick={handleSubmit} disabled={isLoading} className="w-full sm:w-auto">
           {isLoading ? 'Drafting…' : 'Draft post'}
         </Button>
       </div>
