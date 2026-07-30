@@ -16,6 +16,7 @@ const NAV_LINKS = [
   { href: '/my-assignments', label: 'My Assignments' },
   { href: '/equipment', label: 'Equipment' },
   { href: '/media', label: 'Media Library' },
+  { href: '/social-posts', label: 'Social Posts' },
   { href: '/team', label: 'Team' },
 ];
 
