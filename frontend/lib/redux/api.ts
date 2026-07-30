@@ -16,6 +16,11 @@ import type { EquipmentCheckout } from '@/lib/types/equipment-checkout';
 import type { MediaAsset } from '@/lib/types/media-asset';
 import type { SocialPost, CreateSocialPostInput, UpdateSocialPostInput } from '@/lib/types/social-post';
 import type {
+  CrewActivityReportItem,
+  EquipmentUtilizationReportItem,
+  ServicesPerMonthReportItem,
+} from '@/lib/types/report';
+import type {
   BroadcastStatus,
   CrewAssignmentRole,
   CrewAssignmentStatus,
@@ -577,6 +582,19 @@ export const api = createApi({
         { type: 'SocialPost', id: 'LIST' },
       ],
     }),
+
+    // Powers the Reports/History screen (brief Section 5, screen 14).
+    getServicesPerMonthReport: builder.query<ServicesPerMonthReportItem[], void>({
+      query: () => '/reports/services-per-month',
+    }),
+
+    getCrewActivityReport: builder.query<CrewActivityReportItem[], void>({
+      query: () => '/reports/crew-activity',
+    }),
+
+    getEquipmentUtilizationReport: builder.query<EquipmentUtilizationReportItem[], void>({
+      query: () => '/reports/equipment-utilization',
+    }),
   }),
 });
 
@@ -628,4 +646,7 @@ export const {
   useUpdateSocialPostMutation,
   useUpdateSocialPostStatusMutation,
   useDeleteSocialPostMutation,
+  useGetServicesPerMonthReportQuery,
+  useGetCrewActivityReportQuery,
+  useGetEquipmentUtilizationReportQuery,
 } = api;
