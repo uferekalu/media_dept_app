@@ -14,6 +14,7 @@ import type { Broadcast } from '@/lib/types/broadcast';
 import type { Equipment } from '@/lib/types/equipment';
 import type { EquipmentCheckout } from '@/lib/types/equipment-checkout';
 import type { MediaAsset } from '@/lib/types/media-asset';
+import type { SocialPost, CreateSocialPostInput, UpdateSocialPostInput } from '@/lib/types/social-post';
 import type {
   BroadcastStatus,
   CrewAssignmentRole,
@@ -23,6 +24,7 @@ import type {
   EquipmentCurrentStatus,
   MediaAssetType,
   ServiceStatus,
+  SocialPostStatus,
   StatusLogEntityType,
 } from '@/lib/types/enums';
 import type {
@@ -83,6 +85,7 @@ export const api = createApi({
     'Equipment',
     'EquipmentCheckout',
     'MediaAsset',
+    'SocialPost',
   ],
   endpoints: (builder) => ({
     login: builder.mutation<LoginResponse, LoginInput>({
@@ -524,6 +527,56 @@ export const api = createApi({
         { type: 'MediaAsset', id: 'FULL_RECORDINGS' },
       ],
     }),
+
+    // Powers the Social Post Scheduler (brief Section 5, screen 12).
+    getSocialPosts: builder.query<
+      SocialPost[],
+      { platform?: string; status?: SocialPostStatus } | void
+    >({
+      query: (filter) => {
+        const params = new URLSearchParams();
+        if (filter?.platform) params.set('platform', filter.platform);
+        if (filter?.status) params.set('status', filter.status);
+        const qs = params.toString();
+        return `/social-posts${qs ? `?${qs}` : ''}`;
+      },
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((p) => ({ type: 'SocialPost' as const, id: p._id })),
+              { type: 'SocialPost' as const, id: 'LIST' },
+            ]
+          : [{ type: 'SocialPost' as const, id: 'LIST' }],
+    }),
+
+    createSocialPost: builder.mutation<SocialPost, CreateSocialPostInput>({
+      query: (body) => ({ url: '/social-posts', method: 'POST', body }),
+      invalidatesTags: [{ type: 'SocialPost', id: 'LIST' }],
+    }),
+
+    updateSocialPost: builder.mutation<SocialPost, { id: string } & UpdateSocialPostInput>({
+      query: ({ id, ...body }) => ({ url: `/social-posts/${id}`, method: 'PATCH', body }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'SocialPost', id },
+        { type: 'SocialPost', id: 'LIST' },
+      ],
+    }),
+
+    updateSocialPostStatus: builder.mutation<SocialPost, { id: string; status: SocialPostStatus }>({
+      query: ({ id, status }) => ({ url: `/social-posts/${id}/status`, method: 'PATCH', body: { status } }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'SocialPost', id },
+        { type: 'SocialPost', id: 'LIST' },
+      ],
+    }),
+
+    deleteSocialPost: builder.mutation<void, string>({
+      query: (id) => ({ url: `/social-posts/${id}`, method: 'DELETE' }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: 'SocialPost', id },
+        { type: 'SocialPost', id: 'LIST' },
+      ],
+    }),
   }),
 });
 
@@ -570,4 +623,9 @@ export const {
   useCreateMediaAssetLinkMutation,
   useUpdateMediaAssetMutation,
   useDeleteMediaAssetMutation,
+  useGetSocialPostsQuery,
+  useCreateSocialPostMutation,
+  useUpdateSocialPostMutation,
+  useUpdateSocialPostStatusMutation,
+  useDeleteSocialPostMutation,
 } = api;

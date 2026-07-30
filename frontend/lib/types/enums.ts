@@ -321,3 +321,37 @@ export const VIDEO_MEDIA_ASSET_TYPES = [
   MediaAssetType.VIDEO_CLIP,
   MediaAssetType.FULL_RECORDING,
 ];
+
+export enum SocialPostStatus {
+  DRAFT = 'DRAFT',
+  SCHEDULED = 'SCHEDULED',
+  PUBLISHED = 'PUBLISHED',
+}
+
+// Mirrors backend/src/common/enums.ts's VALID_SOCIAL_POST_STATUS_TRANSITIONS — DRAFT
+// can go straight to PUBLISHED (posting immediately) or via SCHEDULED first.
+export const VALID_SOCIAL_POST_STATUS_TRANSITIONS: Record<SocialPostStatus, SocialPostStatus[]> = {
+  [SocialPostStatus.DRAFT]: [SocialPostStatus.SCHEDULED, SocialPostStatus.PUBLISHED],
+  [SocialPostStatus.SCHEDULED]: [SocialPostStatus.PUBLISHED],
+  [SocialPostStatus.PUBLISHED]: [],
+};
+
+export const SOCIAL_POST_STATUS_LABELS: Record<SocialPostStatus, string> = {
+  [SocialPostStatus.DRAFT]: 'Draft',
+  [SocialPostStatus.SCHEDULED]: 'Scheduled',
+  [SocialPostStatus.PUBLISHED]: 'Published',
+};
+
+export const SOCIAL_POST_STATUS_ACTION_LABELS: Record<SocialPostStatus, string> = {
+  [SocialPostStatus.DRAFT]: 'Draft',
+  [SocialPostStatus.SCHEDULED]: 'Schedule',
+  [SocialPostStatus.PUBLISHED]: 'Mark Published',
+};
+
+// Reuses the same six-bucket status-color token set as Service/Broadcast/CrewAssignment
+// (frontend/CLAUDE.md's Brand section) rather than a parallel palette.
+export const SOCIAL_POST_STATUS_BADGE_VARIANT: Record<SocialPostStatus, StatusColorBucket> = {
+  [SocialPostStatus.DRAFT]: 'pending',
+  [SocialPostStatus.SCHEDULED]: 'in-progress',
+  [SocialPostStatus.PUBLISHED]: 'complete',
+};
