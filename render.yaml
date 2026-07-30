@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: media-dept-backend
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: backend
+    # --legacy-peer-deps matches local dev: @nestjs/swagger only declares peer support
+    # for older @nestjs/common majors than this project is on — npm's default ERESOLVE
+    # strictness rejects that even though it works fine in practice. See
+    # backend/CLAUDE.md's stack list; same pre-existing constraint protocol_dept_app's
+    # own render.yaml documents.
+    # --include=dev is required because NODE_ENV=production (set below) is already
+    # present during the build step, and npm skips devDependencies under that env by
+    # default — but @nestjs/cli (the `nest build` command itself) lives there.
+    buildCommand: npm install --legacy-peer-deps --include=dev && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_EXPIRES_IN
+        value: 1d
+      - key: JWT_SECRET
+        generateValue: true
+      # Secrets below are prompted for once during the Blueprint's initial creation
+      # flow in the Render Dashboard, then left alone by future render.yaml syncs —
+      # never committed here. See backend/.env.example for what each one is for.
+      # CLOUDINARY_URL and TERMII_API_KEY are the SAME shared credentials
+      # protocol_dept_app's production deploy uses — explicit user decision, not an
+      # oversight (see backend/CLAUDE.md's Cloudinary/Termii notes).
+      - key: MONGODB_URI
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: TERMII_API_KEY
+        sync: false
+      - key: TERMII_BASE_URL
+        value: https://v4.api.termii.com
+      - key: TERMII_SENDER_ID
+        value: Termii
+      - key: TERMII_CHANNEL
+        value: generic
