@@ -3,6 +3,7 @@ import { ApiBadRequestResponse, ApiBearerAuth, ApiNotFoundResponse, ApiOperation
 import { RunOfShowService } from './run-of-show.service';
 import { CreateRunOfShowItemDto } from './dto/create-run-of-show-item.dto';
 import { UpdateRunOfShowItemDto } from './dto/update-run-of-show-item.dto';
+import { DuplicateRunOfShowDto } from './dto/duplicate-run-of-show.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -25,6 +26,20 @@ export class RunOfShowController {
   @ApiBadRequestResponse({ description: "scheduled_start_time falls outside the service's window" })
   create(@Body() dto: CreateRunOfShowItemDto) {
     return this.runOfShowService.create(dto);
+  }
+
+  @Post('duplicate')
+  @Roles(...ELEVATED_ROLES)
+  @ApiOperation({
+    summary:
+      "Duplicate a service's run-of-show onto another service as a starting template (brief Section 4A)",
+  })
+  @ApiBadRequestResponse({
+    description:
+      'source_service/target_service are the same, source has no items, target already has items, or a shifted segment falls outside the target window',
+  })
+  duplicate(@Body() dto: DuplicateRunOfShowDto) {
+    return this.runOfShowService.duplicateFromService(dto);
   }
 
   @Get()
