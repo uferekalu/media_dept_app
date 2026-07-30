@@ -18,6 +18,7 @@ const NAV_LINKS = [
   { href: '/media', label: 'Media Library' },
   { href: '/social-posts', label: 'Social Posts' },
   { href: '/team', label: 'Team' },
+  { href: '/reports', label: 'Reports' },
 ];
 
 export function AppNav() {
