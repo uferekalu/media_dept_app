@@ -15,12 +15,12 @@ import { EquipmentModule } from './modules/equipment/equipment.module';
 import { EquipmentCheckoutsModule } from './modules/equipment-checkouts/equipment-checkouts.module';
 import { MediaAssetsModule } from './modules/media-assets/media-assets.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { SocialPostsModule } from './modules/social-posts/social-posts.module';
 
-// Phases 1-6 wired up: foundation schemas/CRUD, Service status enforcement,
+// Phases 1-7 wired up: foundation schemas/CRUD, Service status enforcement,
 // CrewAssignment, Broadcast (with the Service rollup), Equipment/EquipmentCheckout,
-// and MediaAsset. Phase 7 (Auth) infrastructure is wired up here (login/signup/JWT +
-// RolesGuard) but not yet applied as a guard to any of the modules above — see
-// docs/MEDIA_APP_BRIEF.md Section 7 and backend/CLAUDE.md's staging note.
+// MediaAsset, and Auth (login/signup/JWT, RolesGuard applied everywhere). Phase 8
+// (Distribution & Reporting) starts here with SocialPost.
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -44,6 +44,7 @@ import { AuthModule } from './modules/auth/auth.module';
     EquipmentCheckoutsModule,
     MediaAssetsModule,
     AuthModule,
+    SocialPostsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

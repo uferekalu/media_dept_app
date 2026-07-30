@@ -164,3 +164,22 @@ export const VIDEO_MEDIA_ASSET_TYPES = [
   MediaAssetType.VIDEO_CLIP,
   MediaAssetType.FULL_RECORDING,
 ];
+
+// Brief Section 3 doesn't define a SocialPost pipeline (StatusLog's entity_type is
+// explicitly scoped to Service/Broadcast only), but Section 4E ("Schedule a post for a
+// future time; mark Published once posted") still describes a small, real progression —
+// modeled the same way as CrewAssignment/Equipment's own un-logged guarded transitions.
+export enum SocialPostStatus {
+  DRAFT = 'DRAFT',
+  SCHEDULED = 'SCHEDULED',
+  PUBLISHED = 'PUBLISHED',
+}
+
+// DRAFT can go straight to PUBLISHED (posting immediately, no pre-scheduling) or via
+// SCHEDULED first — both are explicitly "manual in v1" per the brief, so neither path
+// is more correct than the other.
+export const VALID_SOCIAL_POST_STATUS_TRANSITIONS: Record<SocialPostStatus, SocialPostStatus[]> = {
+  [SocialPostStatus.DRAFT]: [SocialPostStatus.SCHEDULED, SocialPostStatus.PUBLISHED],
+  [SocialPostStatus.SCHEDULED]: [SocialPostStatus.PUBLISHED],
+  [SocialPostStatus.PUBLISHED]: [],
+};
