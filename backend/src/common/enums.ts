@@ -183,3 +183,36 @@ export const VALID_SOCIAL_POST_STATUS_TRANSITIONS: Record<SocialPostStatus, Soci
   [SocialPostStatus.SCHEDULED]: [SocialPostStatus.PUBLISHED],
   [SocialPostStatus.PUBLISHED]: [],
 };
+
+// Contributions & Fundraising (brief Section 4I, Phase 10).
+export enum ContributionCampaignPurposeCategory {
+  EQUIPMENT_PURCHASE = 'EQUIPMENT_PURCHASE',
+  EQUIPMENT_REPAIR = 'EQUIPMENT_REPAIR',
+  GENERAL = 'GENERAL',
+  OTHER = 'OTHER',
+}
+
+export enum ContributionCampaignStatus {
+  ACTIVE = 'ACTIVE',
+  COMPLETED = 'COMPLETED',
+  CLOSED = 'CLOSED',
+}
+
+// ACTIVE can reach COMPLETED on its own (current_amount hits target_amount — informational,
+// doesn't stop new contributions) or be CLOSED directly by an Admin/Director; COMPLETED can
+// still be CLOSED afterward. CLOSED is terminal — a closed campaign never reopens.
+export const VALID_CONTRIBUTION_CAMPAIGN_STATUS_TRANSITIONS: Record<
+  ContributionCampaignStatus,
+  ContributionCampaignStatus[]
+> = {
+  [ContributionCampaignStatus.ACTIVE]: [
+    ContributionCampaignStatus.COMPLETED,
+    ContributionCampaignStatus.CLOSED,
+  ],
+  [ContributionCampaignStatus.COMPLETED]: [ContributionCampaignStatus.CLOSED],
+  [ContributionCampaignStatus.CLOSED]: [],
+};
+
+// Contribution.provider and Contribution.status arrive in PR-031 alongside the
+// Contribution entity itself, once there's an actual payment-provider abstraction to
+// pair them with.

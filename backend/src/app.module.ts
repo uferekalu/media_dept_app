@@ -17,11 +17,14 @@ import { MediaAssetsModule } from './modules/media-assets/media-assets.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { SocialPostsModule } from './modules/social-posts/social-posts.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { ContributionCampaignsModule } from './modules/contribution-campaigns/contribution-campaigns.module';
 
 // Phases 1-7 wired up: foundation schemas/CRUD, Service status enforcement,
 // CrewAssignment, Broadcast (with the Service rollup), Equipment/EquipmentCheckout,
 // MediaAsset, and Auth (login/signup/JWT, RolesGuard applied everywhere). Phase 8
-// (Distribution & Reporting) adds SocialPost and Reports.
+// (Distribution & Reporting) adds SocialPost and Reports. Phase 10 (Contributions &
+// Fundraising) starts with ContributionCampaign CRUD here; the Contribution entity and
+// payment-provider integrations land in a later PR once this is verified.
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -47,6 +50,7 @@ import { ReportsModule } from './modules/reports/reports.module';
     AuthModule,
     SocialPostsModule,
     ReportsModule,
+    ContributionCampaignsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
