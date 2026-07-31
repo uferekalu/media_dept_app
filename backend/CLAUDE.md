@@ -35,7 +35,11 @@ src/modules/services/
 
 Follow this pattern for `services`, `run-of-show`, `platforms`, `broadcasts`,
 `crew-assignments`, `equipment`, `equipment-checkouts`, `media-assets`, `social-posts`,
-`status-logs`, `media-team-members`, and `auth`.
+`status-logs`, `media-team-members`, `auth`, `contribution-campaigns`, and
+`contributions` (Phase 10). The payment-gateway wrappers themselves aren't a feature
+module — they live under `src/common/payments/` alongside `src/common/cloudinary/` and
+`src/common/termii/`, the existing convention for third-party integrations that aren't
+domain entities.
 
 - **Schemas** use `@nestjs/mongoose` decorators. Use `Types.ObjectId` with `ref` for
   relationships (e.g. `Broadcast.service` refs `Service`, `Broadcast.platform` refs
