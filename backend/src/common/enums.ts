@@ -213,10 +213,11 @@ export const VALID_CONTRIBUTION_CAMPAIGN_STATUS_TRANSITIONS: Record<
   [ContributionCampaignStatus.CLOSED]: [],
 };
 
-// All three are documented in the brief (Section 4I), but only PAYSTACK has a
-// concrete provider registered in PaymentProviderRegistry as of this PR — requesting
-// FLUTTERWAVE or STRIPE before their own PRs land fails with a clear 400 ("not
-// available yet"), not a silent no-op or a schema migration later.
+// All three are documented in the brief (Section 4I). PAYSTACK and FLUTTERWAVE have
+// concrete providers registered in PaymentProviderRegistry; STRIPE doesn't yet
+// (gated on confirmed account eligibility — see the brief's Phase 10 note) —
+// requesting it fails with a clear 400 ("not available yet"), not a silent no-op or a
+// schema migration later.
 export enum ContributionProvider {
   PAYSTACK = 'PAYSTACK',
   FLUTTERWAVE = 'FLUTTERWAVE',

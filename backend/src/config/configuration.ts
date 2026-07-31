@@ -9,4 +9,6 @@ export default () => ({
   termiiSenderId: process.env.TERMII_SENDER_ID ?? 'Termii',
   termiiChannel: process.env.TERMII_CHANNEL ?? 'generic',
   paystackSecretKey: process.env.PAYSTACK_SECRET_KEY,
+  flutterwaveSecretKey: process.env.FLUTTERWAVE_SECRET_KEY,
+  flutterwaveWebhookHash: process.env.FLUTTERWAVE_WEBHOOK_HASH,
 });
