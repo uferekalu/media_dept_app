@@ -6,7 +6,10 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: true keeps req.rawBody available alongside the normal parsed req.body —
+  // needed by the Contributions webhook routes to verify each gateway's HMAC/hash
+  // signature over the exact bytes received (see ContributionWebhooksController).
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   const configService = app.get(ConfigService);
 
   app.use(helmet());

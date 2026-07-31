@@ -18,13 +18,14 @@ import { AuthModule } from './modules/auth/auth.module';
 import { SocialPostsModule } from './modules/social-posts/social-posts.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { ContributionCampaignsModule } from './modules/contribution-campaigns/contribution-campaigns.module';
+import { ContributionsModule } from './modules/contributions/contributions.module';
 
 // Phases 1-7 wired up: foundation schemas/CRUD, Service status enforcement,
 // CrewAssignment, Broadcast (with the Service rollup), Equipment/EquipmentCheckout,
 // MediaAsset, and Auth (login/signup/JWT, RolesGuard applied everywhere). Phase 8
 // (Distribution & Reporting) adds SocialPost and Reports. Phase 10 (Contributions &
-// Fundraising) starts with ContributionCampaign CRUD here; the Contribution entity and
-// payment-provider integrations land in a later PR once this is verified.
+// Fundraising): ContributionCampaign CRUD, then Contribution + the payment-provider
+// abstraction + a working Paystack flow (Flutterwave/Stripe are later, separate PRs).
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -51,6 +52,7 @@ import { ContributionCampaignsModule } from './modules/contribution-campaigns/co
     SocialPostsModule,
     ReportsModule,
     ContributionCampaignsModule,
+    ContributionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

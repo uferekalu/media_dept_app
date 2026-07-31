@@ -8,4 +8,5 @@ export default () => ({
   termiiBaseUrl: process.env.TERMII_BASE_URL ?? 'https://v4.api.termii.com',
   termiiSenderId: process.env.TERMII_SENDER_ID ?? 'Termii',
   termiiChannel: process.env.TERMII_CHANNEL ?? 'generic',
+  paystackSecretKey: process.env.PAYSTACK_SECRET_KEY,
 });

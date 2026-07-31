@@ -92,7 +92,7 @@ export class ContributionCampaignsService {
 
   // Never delete a campaign that already has real money raised against it — Closing it
   // (via updateStatus) is the correct way to stop a funded campaign; deleting would
-  // orphan the audit trail once PR-031 adds Contribution records referencing it.
+  // orphan the audit trail of Contribution records referencing it.
   async remove(id: string): Promise<void> {
     const campaign = await this.findOne(id);
     if (campaign.current_amount > 0) {
@@ -101,5 +101,24 @@ export class ContributionCampaignsService {
       );
     }
     await this.contributionCampaignModel.findByIdAndDelete(id).exec();
+  }
+
+  // Internal, system-driven write used by ContributionsService.verifyAndSync() the
+  // moment a Contribution is confirmed SUCCESSFUL — never exposed via its own endpoint,
+  // same convention as EquipmentService.setCurrentStatus(). $inc is atomic in MongoDB,
+  // so concurrent successful contributions never lose an update to each other.
+  async incrementRaised(id: string, amountKobo: number): Promise<void> {
+    const campaign = await this.contributionCampaignModel
+      .findByIdAndUpdate(id, { $inc: { current_amount: amountKobo } }, { new: true })
+      .exec();
+
+    if (
+      campaign &&
+      campaign.status === ContributionCampaignStatus.ACTIVE &&
+      campaign.current_amount >= campaign.target_amount
+    ) {
+      campaign.status = ContributionCampaignStatus.COMPLETED;
+      await campaign.save();
+    }
   }
 }
