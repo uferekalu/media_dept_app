@@ -21,4 +21,11 @@ export class ContributionWebhooksController {
     await this.contributionsService.handleWebhook(ContributionProvider.PAYSTACK, req.rawBody ?? Buffer.alloc(0), signature);
     return { received: true };
   }
+
+  @Post('flutterwave')
+  @HttpCode(HttpStatus.OK)
+  async flutterwave(@Req() req: RawBodyRequest<Request>, @Headers('verif-hash') signature?: string) {
+    await this.contributionsService.handleWebhook(ContributionProvider.FLUTTERWAVE, req.rawBody ?? Buffer.alloc(0), signature);
+    return { received: true };
+  }
 }
