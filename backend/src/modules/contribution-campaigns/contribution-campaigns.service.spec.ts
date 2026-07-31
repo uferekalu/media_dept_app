@@ -14,6 +14,7 @@ describe('ContributionCampaignsService', () => {
     find: jest.Mock;
     findById: jest.Mock;
     findByIdAndDelete: jest.Mock;
+    findByIdAndUpdate: jest.Mock;
   };
 
   beforeEach(async () => {
@@ -22,6 +23,7 @@ describe('ContributionCampaignsService', () => {
       find: jest.fn(),
       findById: jest.fn(),
       findByIdAndDelete: jest.fn(),
+      findByIdAndUpdate: jest.fn(),
     };
     equipmentService = { findOne: jest.fn().mockResolvedValue({ _id: 'equipment-id' }) };
 
@@ -149,6 +151,59 @@ describe('ContributionCampaignsService', () => {
       await service.remove('campaign-id');
 
       expect(model.findByIdAndDelete).toHaveBeenCalledWith('campaign-id');
+    });
+  });
+
+  describe('incrementRaised', () => {
+    it('increments current_amount atomically via $inc', async () => {
+      model.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({
+          status: ContributionCampaignStatus.ACTIVE,
+          current_amount: 5000000,
+          target_amount: 15000000,
+          save: jest.fn(),
+        }),
+      });
+
+      await service.incrementRaised('campaign-id', 5000000);
+
+      expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
+        'campaign-id',
+        { $inc: { current_amount: 5000000 } },
+        { new: true },
+      );
+    });
+
+    it('auto-completes an ACTIVE campaign once current_amount reaches target_amount', async () => {
+      const save = jest.fn().mockResolvedValue(undefined);
+      model.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({
+          status: ContributionCampaignStatus.ACTIVE,
+          current_amount: 15000000,
+          target_amount: 15000000,
+          save,
+        }),
+      });
+
+      await service.incrementRaised('campaign-id', 10000000);
+
+      expect(save).toHaveBeenCalled();
+    });
+
+    it('does not touch status for a campaign that is not ACTIVE (e.g. already CLOSED)', async () => {
+      const save = jest.fn();
+      model.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({
+          status: ContributionCampaignStatus.CLOSED,
+          current_amount: 15000000,
+          target_amount: 15000000,
+          save,
+        }),
+      });
+
+      await service.incrementRaised('campaign-id', 5000000);
+
+      expect(save).not.toHaveBeenCalled();
     });
   });
 });

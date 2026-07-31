@@ -213,6 +213,30 @@ export const VALID_CONTRIBUTION_CAMPAIGN_STATUS_TRANSITIONS: Record<
   [ContributionCampaignStatus.CLOSED]: [],
 };
 
-// Contribution.provider and Contribution.status arrive in PR-031 alongside the
-// Contribution entity itself, once there's an actual payment-provider abstraction to
-// pair them with.
+// All three are documented in the brief (Section 4I), but only PAYSTACK has a
+// concrete provider registered in PaymentProviderRegistry as of this PR — requesting
+// FLUTTERWAVE or STRIPE before their own PRs land fails with a clear 400 ("not
+// available yet"), not a silent no-op or a schema migration later.
+export enum ContributionProvider {
+  PAYSTACK = 'PAYSTACK',
+  FLUTTERWAVE = 'FLUTTERWAVE',
+  STRIPE = 'STRIPE',
+}
+
+export enum ContributionStatus {
+  PENDING = 'PENDING',
+  SUCCESSFUL = 'SUCCESSFUL',
+  FAILED = 'FAILED',
+  REFUNDED = 'REFUNDED',
+}
+
+// PENDING -> SUCCESSFUL|FAILED is set by ContributionsService.verifyAndSync(), never
+// directly by a user. SUCCESSFUL -> REFUNDED is reserved for a future webhook-driven
+// refund/chargeback event (brief Section 4I: "record-only in v1, no in-app trigger") —
+// nothing sets it yet in this PR. FAILED and REFUNDED are terminal.
+export const VALID_CONTRIBUTION_STATUS_TRANSITIONS: Record<ContributionStatus, ContributionStatus[]> = {
+  [ContributionStatus.PENDING]: [ContributionStatus.SUCCESSFUL, ContributionStatus.FAILED],
+  [ContributionStatus.SUCCESSFUL]: [ContributionStatus.REFUNDED],
+  [ContributionStatus.FAILED]: [],
+  [ContributionStatus.REFUNDED]: [],
+};
