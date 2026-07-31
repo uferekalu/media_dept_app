@@ -213,11 +213,8 @@ export const VALID_CONTRIBUTION_CAMPAIGN_STATUS_TRANSITIONS: Record<
   [ContributionCampaignStatus.CLOSED]: [],
 };
 
-// All three are documented in the brief (Section 4I). PAYSTACK and FLUTTERWAVE have
-// concrete providers registered in PaymentProviderRegistry; STRIPE doesn't yet
-// (gated on confirmed account eligibility — see the brief's Phase 10 note) —
-// requesting it fails with a clear 400 ("not available yet"), not a silent no-op or a
-// schema migration later.
+// All three are documented in the brief (Section 4I) and, as of this PR, all have
+// concrete providers registered in PaymentProviderRegistry.
 export enum ContributionProvider {
   PAYSTACK = 'PAYSTACK',
   FLUTTERWAVE = 'FLUTTERWAVE',

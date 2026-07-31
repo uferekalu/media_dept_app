@@ -4,8 +4,8 @@ import { Request } from 'express';
 import { ContributionsService } from './contributions.service';
 import { ContributionProvider } from '../../common/enums';
 
-// Deliberately its own controller with no guards at all — Paystack (and later
-// Flutterwave/Stripe) call these directly with no JWT, so this must never sit behind
+// Deliberately its own controller with no guards at all — Paystack, Flutterwave, and
+// Stripe call these directly with no JWT, so this must never sit behind
 // JwtAuthGuard/RolesGuard. Every route here is instead protected by verifying the
 // gateway's own signature over the raw request body (see ContributionsService.
 // handleWebhook() and each PaymentProvider's verifyWebhookSignature()). Excluded from
@@ -26,6 +26,13 @@ export class ContributionWebhooksController {
   @HttpCode(HttpStatus.OK)
   async flutterwave(@Req() req: RawBodyRequest<Request>, @Headers('verif-hash') signature?: string) {
     await this.contributionsService.handleWebhook(ContributionProvider.FLUTTERWAVE, req.rawBody ?? Buffer.alloc(0), signature);
+    return { received: true };
+  }
+
+  @Post('stripe')
+  @HttpCode(HttpStatus.OK)
+  async stripe(@Req() req: RawBodyRequest<Request>, @Headers('stripe-signature') signature?: string) {
+    await this.contributionsService.handleWebhook(ContributionProvider.STRIPE, req.rawBody ?? Buffer.alloc(0), signature);
     return { received: true };
   }
 }
