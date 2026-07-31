@@ -355,3 +355,89 @@ export const SOCIAL_POST_STATUS_BADGE_VARIANT: Record<SocialPostStatus, StatusCo
   [SocialPostStatus.SCHEDULED]: 'in-progress',
   [SocialPostStatus.PUBLISHED]: 'complete',
 };
+
+// Contributions & Fundraising (brief Section 4I, Phase 10).
+export enum ContributionCampaignPurposeCategory {
+  EQUIPMENT_PURCHASE = 'EQUIPMENT_PURCHASE',
+  EQUIPMENT_REPAIR = 'EQUIPMENT_REPAIR',
+  GENERAL = 'GENERAL',
+  OTHER = 'OTHER',
+}
+
+export const CONTRIBUTION_CAMPAIGN_PURPOSE_CATEGORY_LABELS: Record<ContributionCampaignPurposeCategory, string> = {
+  [ContributionCampaignPurposeCategory.EQUIPMENT_PURCHASE]: 'Equipment Purchase',
+  [ContributionCampaignPurposeCategory.EQUIPMENT_REPAIR]: 'Equipment Repair',
+  [ContributionCampaignPurposeCategory.GENERAL]: 'General',
+  [ContributionCampaignPurposeCategory.OTHER]: 'Other',
+};
+
+export enum ContributionCampaignStatus {
+  ACTIVE = 'ACTIVE',
+  COMPLETED = 'COMPLETED',
+  CLOSED = 'CLOSED',
+}
+
+// Mirrors backend/src/common/enums.ts's VALID_CONTRIBUTION_CAMPAIGN_STATUS_TRANSITIONS
+// — ACTIVE can also reach COMPLETED on its own once current_amount hits target_amount
+// (informational), only CLOSED actually stops new contributions.
+export const VALID_CONTRIBUTION_CAMPAIGN_STATUS_TRANSITIONS: Record<
+  ContributionCampaignStatus,
+  ContributionCampaignStatus[]
+> = {
+  [ContributionCampaignStatus.ACTIVE]: [ContributionCampaignStatus.COMPLETED, ContributionCampaignStatus.CLOSED],
+  [ContributionCampaignStatus.COMPLETED]: [ContributionCampaignStatus.CLOSED],
+  [ContributionCampaignStatus.CLOSED]: [],
+};
+
+export const CONTRIBUTION_CAMPAIGN_STATUS_LABELS: Record<ContributionCampaignStatus, string> = {
+  [ContributionCampaignStatus.ACTIVE]: 'Active',
+  [ContributionCampaignStatus.COMPLETED]: 'Completed',
+  [ContributionCampaignStatus.CLOSED]: 'Closed',
+};
+
+export const CONTRIBUTION_CAMPAIGN_STATUS_ACTION_LABELS: Record<ContributionCampaignStatus, string> = {
+  [ContributionCampaignStatus.ACTIVE]: 'Mark Completed',
+  [ContributionCampaignStatus.COMPLETED]: 'Close Campaign',
+  [ContributionCampaignStatus.CLOSED]: 'Closed',
+};
+
+// Reuses the same six-bucket status-color token set as every other entity (frontend/
+// CLAUDE.md's Brand section) rather than a parallel palette.
+export const CONTRIBUTION_CAMPAIGN_STATUS_BADGE_VARIANT: Record<ContributionCampaignStatus, StatusColorBucket> = {
+  [ContributionCampaignStatus.ACTIVE]: 'in-progress',
+  [ContributionCampaignStatus.COMPLETED]: 'complete',
+  [ContributionCampaignStatus.CLOSED]: 'archived',
+};
+
+export enum ContributionProvider {
+  PAYSTACK = 'PAYSTACK',
+  FLUTTERWAVE = 'FLUTTERWAVE',
+  STRIPE = 'STRIPE',
+}
+
+export const CONTRIBUTION_PROVIDER_LABELS: Record<ContributionProvider, string> = {
+  [ContributionProvider.PAYSTACK]: 'Paystack',
+  [ContributionProvider.FLUTTERWAVE]: 'Flutterwave',
+  [ContributionProvider.STRIPE]: 'Stripe',
+};
+
+export enum ContributionStatus {
+  PENDING = 'PENDING',
+  SUCCESSFUL = 'SUCCESSFUL',
+  FAILED = 'FAILED',
+  REFUNDED = 'REFUNDED',
+}
+
+export const CONTRIBUTION_STATUS_LABELS: Record<ContributionStatus, string> = {
+  [ContributionStatus.PENDING]: 'Pending',
+  [ContributionStatus.SUCCESSFUL]: 'Successful',
+  [ContributionStatus.FAILED]: 'Failed',
+  [ContributionStatus.REFUNDED]: 'Refunded',
+};
+
+export const CONTRIBUTION_STATUS_BADGE_VARIANT: Record<ContributionStatus, StatusColorBucket> = {
+  [ContributionStatus.PENDING]: 'pending',
+  [ContributionStatus.SUCCESSFUL]: 'complete',
+  [ContributionStatus.FAILED]: 'archived',
+  [ContributionStatus.REFUNDED]: 'wrap-up',
+};

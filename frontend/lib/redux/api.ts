@@ -16,12 +16,19 @@ import type { EquipmentCheckout } from '@/lib/types/equipment-checkout';
 import type { MediaAsset } from '@/lib/types/media-asset';
 import type { SocialPost, CreateSocialPostInput, UpdateSocialPostInput } from '@/lib/types/social-post';
 import type {
+  ContributionCampaign,
+  CreateContributionCampaignInput,
+  UpdateContributionCampaignInput,
+} from '@/lib/types/contribution-campaign';
+import type { Contribution, InitiateContributionInput } from '@/lib/types/contribution';
+import type {
   CrewActivityReportItem,
   EquipmentUtilizationReportItem,
   ServicesPerMonthReportItem,
 } from '@/lib/types/report';
 import type {
   BroadcastStatus,
+  ContributionCampaignStatus,
   CrewAssignmentRole,
   CrewAssignmentStatus,
   EquipmentCategory,
@@ -91,6 +98,8 @@ export const api = createApi({
     'EquipmentCheckout',
     'MediaAsset',
     'SocialPost',
+    'ContributionCampaign',
+    'Contribution',
   ],
   endpoints: (builder) => ({
     login: builder.mutation<LoginResponse, LoginInput>({
@@ -595,6 +604,87 @@ export const api = createApi({
     getEquipmentUtilizationReport: builder.query<EquipmentUtilizationReportItem[], void>({
       query: () => '/reports/equipment-utilization',
     }),
+
+    // Powers the Contribution Campaigns screen (brief Section 5, screen 15).
+    getContributionCampaigns: builder.query<ContributionCampaign[], { status?: ContributionCampaignStatus } | void>({
+      query: (filter) => {
+        const params = new URLSearchParams();
+        if (filter?.status) params.set('status', filter.status);
+        const qs = params.toString();
+        return `/contribution-campaigns${qs ? `?${qs}` : ''}`;
+      },
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((c) => ({ type: 'ContributionCampaign' as const, id: c._id })),
+              { type: 'ContributionCampaign' as const, id: 'LIST' },
+            ]
+          : [{ type: 'ContributionCampaign' as const, id: 'LIST' }],
+    }),
+
+    getContributionCampaign: builder.query<ContributionCampaign, string>({
+      query: (id) => `/contribution-campaigns/${id}`,
+      providesTags: (_result, _error, id) => [{ type: 'ContributionCampaign', id }],
+    }),
+
+    createContributionCampaign: builder.mutation<ContributionCampaign, CreateContributionCampaignInput>({
+      query: (body) => ({ url: '/contribution-campaigns', method: 'POST', body }),
+      invalidatesTags: [{ type: 'ContributionCampaign', id: 'LIST' }],
+    }),
+
+    updateContributionCampaign: builder.mutation<
+      ContributionCampaign,
+      { id: string } & UpdateContributionCampaignInput
+    >({
+      query: ({ id, ...body }) => ({ url: `/contribution-campaigns/${id}`, method: 'PATCH', body }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'ContributionCampaign', id },
+        { type: 'ContributionCampaign', id: 'LIST' },
+      ],
+    }),
+
+    // Guarded ACTIVE -> COMPLETED/CLOSED transition, mirrors updateSocialPostStatus.
+    updateContributionCampaignStatus: builder.mutation<
+      ContributionCampaign,
+      { id: string; status: ContributionCampaignStatus }
+    >({
+      query: ({ id, status }) => ({ url: `/contribution-campaigns/${id}/status`, method: 'PATCH', body: { status } }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'ContributionCampaign', id },
+        { type: 'ContributionCampaign', id: 'LIST' },
+      ],
+    }),
+
+    deleteContributionCampaign: builder.mutation<void, string>({
+      query: (id) => ({ url: `/contribution-campaigns/${id}`, method: 'DELETE' }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: 'ContributionCampaign', id },
+        { type: 'ContributionCampaign', id: 'LIST' },
+      ],
+    }),
+
+    // Starts a contribution — returns a gateway-hosted checkout_url the caller redirects
+    // to (window.location.href, a full page navigation, not a client-side route).
+    initiateContribution: builder.mutation<Contribution, InitiateContributionInput>({
+      query: (body) => ({ url: '/contributions/initiate', method: 'POST', body }),
+    }),
+
+    // Powers the return page's poll loop after the gateway redirects back.
+    getContribution: builder.query<Contribution, string>({
+      query: (id) => `/contributions/${id}`,
+      providesTags: (_result, _error, id) => [{ type: 'Contribution', id }],
+    }),
+
+    // Safety net for the return page in case the webhook hasn't landed yet — manually
+    // re-checks this contribution against the gateway. Also invalidates the campaign's
+    // own cache entry, since a newly-SUCCESSFUL contribution bumps its current_amount.
+    verifyContribution: builder.mutation<Contribution, { id: string; campaignId: string }>({
+      query: ({ id }) => ({ url: `/contributions/${id}/verify`, method: 'POST' }),
+      invalidatesTags: (_result, _error, { id, campaignId }) => [
+        { type: 'Contribution', id },
+        { type: 'ContributionCampaign', id: campaignId },
+      ],
+    }),
   }),
 });
 
@@ -649,4 +739,13 @@ export const {
   useGetServicesPerMonthReportQuery,
   useGetCrewActivityReportQuery,
   useGetEquipmentUtilizationReportQuery,
+  useGetContributionCampaignsQuery,
+  useGetContributionCampaignQuery,
+  useCreateContributionCampaignMutation,
+  useUpdateContributionCampaignMutation,
+  useUpdateContributionCampaignStatusMutation,
+  useDeleteContributionCampaignMutation,
+  useInitiateContributionMutation,
+  useGetContributionQuery,
+  useVerifyContributionMutation,
 } = api;

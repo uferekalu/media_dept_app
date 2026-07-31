@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, ChevronsLeft, ChevronsRight, Images, LayoutDashboard, ListChecks, Package, Send, Users } from 'lucide-react';
+import { BarChart3, ChevronsLeft, ChevronsRight, HandCoins, Images, LayoutDashboard, ListChecks, Package, Send, Users } from 'lucide-react';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,7 @@ const NAV_LINKS = [
   { href: '/social-posts', label: 'Social Posts', icon: Send },
   { href: '/team', label: 'Team', icon: Users },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
+  { href: '/campaigns', label: 'Campaigns', icon: HandCoins },
 ];
 
 const STORAGE_KEY = 'media-department:mobile-nav-expanded';
