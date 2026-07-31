@@ -53,7 +53,13 @@ export class ContributionsService {
         reference: internalReference,
         amountKobo: dto.amount,
         email: dto.email,
-        callbackUrl: `${frontendUrl}/campaigns/${dto.campaign}/contribute/return?ref=${internalReference}`,
+        // `contribution` (the Mongo _id) rides alongside `ref` (internal_reference) so
+        // the frontend return page can call GET/POST /contributions/:id directly —
+        // those routes are keyed by _id, not internal_reference, and there's no
+        // by-reference lookup endpoint. Keeping both means the return page works even
+        // if the contributor comes back on a different device/browser (no reliance on
+        // anything stashed client-side before the redirect).
+        callbackUrl: `${frontendUrl}/campaigns/${dto.campaign}/contribute/return?ref=${internalReference}&contribution=${contribution._id}`,
         metadata: { campaignId: dto.campaign, contributorId },
       });
 
