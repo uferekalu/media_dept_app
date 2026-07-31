@@ -27,3 +27,14 @@ const twMerge = extendTailwindMerge({
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+// Every Contribution/ContributionCampaign amount is stored in kobo (brief Section 2),
+// matching how every payment gateway itself represents amounts — this is the one place
+// that converts to a human-readable Naira string for display.
+export function formatNaira(amountKobo: number): string {
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    maximumFractionDigits: 0,
+  }).format(amountKobo / 100)
+}

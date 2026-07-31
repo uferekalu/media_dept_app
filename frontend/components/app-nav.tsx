@@ -19,6 +19,7 @@ const NAV_LINKS = [
   { href: '/social-posts', label: 'Social Posts' },
   { href: '/team', label: 'Team' },
   { href: '/reports', label: 'Reports' },
+  { href: '/campaigns', label: 'Campaigns' },
 ];
 
 export function AppNav() {
