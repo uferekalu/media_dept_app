@@ -33,7 +33,11 @@ export interface VerifyPaymentResult {
 export interface PaymentProvider {
   readonly name: ContributionProvider;
   initiate(params: InitiatePaymentParams): Promise<InitiatePaymentResult>;
-  verify(reference: string): Promise<VerifyPaymentResult>;
+  // providerReference is the value initiate() returned (Contribution.provider_reference)
+  // — Paystack/Flutterwave ignore it and verify by our own `reference` directly, but
+  // Stripe has no "verify by client_reference_id" API for Checkout Sessions, only a
+  // direct retrieve-by-id, so it needs this to look the session back up.
+  verify(reference: string, providerReference?: string): Promise<VerifyPaymentResult>;
   verifyWebhookSignature(rawBody: Buffer, signatureHeader: string | undefined): boolean;
   // Reads just enough of the (already signature-verified) webhook body to know which
   // Contribution it's about — ContributionsService.verifyAndSync() does the actual

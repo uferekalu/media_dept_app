@@ -110,7 +110,7 @@ export class ContributionsService {
     }
 
     const provider = this.paymentProviderRegistry.get(contribution.provider);
-    const result = await provider.verify(reference);
+    const result = await provider.verify(reference, contribution.provider_reference);
 
     if (result.status === 'SUCCESSFUL' && result.amountKobo !== contribution.amount) {
       // Never trust an amount mismatch as a real payment — this is exactly the class

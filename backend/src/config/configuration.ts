@@ -11,4 +11,6 @@ export default () => ({
   paystackSecretKey: process.env.PAYSTACK_SECRET_KEY,
   flutterwaveSecretKey: process.env.FLUTTERWAVE_SECRET_KEY,
   flutterwaveWebhookHash: process.env.FLUTTERWAVE_WEBHOOK_HASH,
+  stripeSecretKey: process.env.STRIPE_SECRET_KEY,
+  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
 });
