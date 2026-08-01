@@ -4,13 +4,16 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { cn } from '@/lib/utils';
+import { MediaTeamMemberRole } from '@/lib/types/enums';
 
 // Desktop/tablet only (sm and up) — a horizontally-scrolling tab row, mirroring
 // protocol_dept_app's app-nav.tsx exactly. Below `sm`, MobileNavDrawer takes over
-// instead. Grows as each phase adds a screen — no role-based filtering yet (that's a
-// later polish pass on top of Phase 7's guards, same as protocol_dept_app's own
-// staging), but it must only render for a confirmed logged-in identity — otherwise the
-// internal nav leaks through on /login itself for a logged-out visitor.
+// instead. Grows as each phase adds a screen — mostly no role-based filtering yet
+// (that's a later polish pass on top of Phase 7's guards, same as
+// protocol_dept_app's own staging), except Contributions Ledger, which brief Section
+// 4I scopes stricter than every other screen (Admin-only, not Admin+Director) — must
+// only render for a confirmed logged-in identity, otherwise the internal nav leaks
+// through on /login itself for a logged-out visitor.
 const NAV_LINKS = [
   { href: '/', label: 'Dashboard' },
   { href: '/my-assignments', label: 'My Assignments' },
@@ -20,6 +23,7 @@ const NAV_LINKS = [
   { href: '/team', label: 'Team' },
   { href: '/reports', label: 'Reports' },
   { href: '/campaigns', label: 'Campaigns' },
+  { href: '/contributions', label: 'Ledger', adminOnly: true },
 ];
 
 export function AppNav() {
@@ -28,13 +32,15 @@ export function AppNav() {
 
   if (!currentUser) return null;
 
+  const links = NAV_LINKS.filter((link) => !link.adminOnly || currentUser.role === MediaTeamMemberRole.ADMIN);
+
   return (
     <nav
       aria-label="Primary"
       className="sticky top-14 z-30 hidden border-b border-border bg-background sm:block"
     >
       <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-3 sm:px-4">
-        {NAV_LINKS.map((link) => {
+        {links.map((link) => {
           const isActive = link.href === '/' ? pathname === '/' : pathname.startsWith(link.href);
           return (
             <Link

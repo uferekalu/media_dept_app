@@ -29,6 +29,8 @@ import type {
 import type {
   BroadcastStatus,
   ContributionCampaignStatus,
+  ContributionProvider,
+  ContributionStatus,
   CrewAssignmentRole,
   CrewAssignmentStatus,
   EquipmentCategory,
@@ -685,6 +687,30 @@ export const api = createApi({
         { type: 'ContributionCampaign', id: campaignId },
       ],
     }),
+
+    // Full Contributions Ledger (brief Section 4I) — Admin-only, enforced by the
+    // backend's @Roles() guard; the ledger page itself also skips this query entirely
+    // for a non-Admin rather than firing a request that's guaranteed a 403.
+    getContributions: builder.query<
+      Contribution[],
+      { campaign?: string; status?: ContributionStatus; provider?: ContributionProvider } | void
+    >({
+      query: (filter) => {
+        const params = new URLSearchParams();
+        if (filter?.campaign) params.set('campaign', filter.campaign);
+        if (filter?.status) params.set('status', filter.status);
+        if (filter?.provider) params.set('provider', filter.provider);
+        const qs = params.toString();
+        return `/contributions${qs ? `?${qs}` : ''}`;
+      },
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((c) => ({ type: 'Contribution' as const, id: c._id })),
+              { type: 'Contribution' as const, id: 'LEDGER' },
+            ]
+          : [{ type: 'Contribution' as const, id: 'LEDGER' }],
+    }),
   }),
 });
 
@@ -748,4 +774,5 @@ export const {
   useInitiateContributionMutation,
   useGetContributionQuery,
   useVerifyContributionMutation,
+  useGetContributionsQuery,
 } = api;

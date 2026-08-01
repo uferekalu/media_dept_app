@@ -3,20 +3,25 @@
 import { useMemo } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { skipToken } from '@reduxjs/toolkit/query/react';
 import { AlertTriangle, ChevronRight, RefreshCw } from 'lucide-react';
 import {
+  useGetContributionCampaignsQuery,
   useGetCrewActivityReportQuery,
   useGetEquipmentUtilizationReportQuery,
   useGetServicesPerMonthReportQuery,
   useGetServicesQuery,
 } from '@/lib/redux/api';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { ReportBarList } from '@/components/report-bar-list';
+import { FundsRaisedBarList } from '@/components/funds-raised-bar-list';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   EQUIPMENT_CATEGORY_LABELS,
+  MediaTeamMemberRole,
   SERVICE_STATUS_COLOR,
   SERVICE_STATUS_LABELS,
   SERVICE_TYPE_LABELS,
@@ -26,6 +31,9 @@ import {
 // (Section 4G) plus a look-back archive of every past service, each linking to its
 // full status timeline ("Past services archive with full logs").
 export default function ReportsPage() {
+  const { data: currentUser } = useCurrentUser();
+  const isAdmin = currentUser?.role === MediaTeamMemberRole.ADMIN;
+
   const {
     data: servicesPerMonth,
     isLoading: servicesPerMonthLoading,
@@ -41,6 +49,14 @@ export default function ReportsPage() {
     isLoading: equipmentUtilizationLoading,
     isError: equipmentUtilizationError,
   } = useGetEquipmentUtilizationReportQuery();
+  // Funds Raised (brief Section 4I) is Admin-only, per the brief's stricter split for
+  // anything showing contribution amounts — skipped entirely for anyone else so a
+  // Director/Member never even fires the request.
+  const {
+    data: campaigns,
+    isLoading: campaignsLoading,
+    isError: campaignsError,
+  } = useGetContributionCampaignsQuery(isAdmin ? undefined : skipToken);
   const {
     data: services,
     isLoading: servicesLoading,
@@ -112,6 +128,18 @@ export default function ReportsPage() {
             }))}
           />
         </ReportSection>
+
+        {isAdmin && (
+          <ReportSection title="Funds Raised by Campaign" isLoading={campaignsLoading} isError={campaignsError}>
+            <FundsRaisedBarList
+              emptyMessage="No campaigns raising funds yet."
+              items={[...(campaigns ?? [])]
+                .sort((a, b) => b.current_amount - a.current_amount)
+                .slice(0, 10)
+                .map((c) => ({ key: c._id, label: c.title, amountKobo: c.current_amount }))}
+            />
+          </ReportSection>
+        )}
       </div>
 
       <div>
