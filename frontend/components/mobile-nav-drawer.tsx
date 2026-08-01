@@ -3,14 +3,16 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, ChevronsLeft, ChevronsRight, HandCoins, Images, LayoutDashboard, ListChecks, Package, Send, Users } from 'lucide-react';
+import { BarChart3, ChevronsLeft, ChevronsRight, HandCoins, Images, LayoutDashboard, ListChecks, Package, ShieldCheck, Send, Users } from 'lucide-react';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { MediaTeamMemberRole } from '@/lib/types/enums';
 
 // Mirrors app-nav.tsx's link list — kept as a separate array (not shared) since the
 // two components' link shape differs (this one needs an icon per link, the desktop
-// tab row doesn't).
+// tab row doesn't). Contributions Ledger is Admin-only (brief Section 4I, stricter
+// than every other screen's Admin+Director split) — filtered out below for anyone else.
 const NAV_LINKS = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/my-assignments', label: 'My Assignments', icon: ListChecks },
@@ -20,6 +22,7 @@ const NAV_LINKS = [
   { href: '/team', label: 'Team', icon: Users },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/campaigns', label: 'Campaigns', icon: HandCoins },
+  { href: '/contributions', label: 'Ledger', icon: ShieldCheck, adminOnly: true },
 ];
 
 const STORAGE_KEY = 'media-department:mobile-nav-expanded';
@@ -72,6 +75,8 @@ export function MobileNavDrawer() {
 
   if (!currentUser) return null;
 
+  const links = NAV_LINKS.filter((link) => !link.adminOnly || currentUser.role === MediaTeamMemberRole.ADMIN);
+
   return (
     <nav
       ref={navRef}
@@ -82,7 +87,7 @@ export function MobileNavDrawer() {
       )}
     >
       <div className="flex flex-col gap-1 p-2">
-        {NAV_LINKS.map((link) => {
+        {links.map((link) => {
           const isActive = link.href === '/' ? pathname === '/' : pathname.startsWith(link.href);
           const Icon = link.icon;
           return (
