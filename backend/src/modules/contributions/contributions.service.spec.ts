@@ -234,6 +234,16 @@ describe('ContributionsService', () => {
   describe('handleWebhook', () => {
     const rawBody = Buffer.from(JSON.stringify({ event: 'charge.success', data: { reference: 'mdc_abc' } }));
 
+    function mockAlreadyResolvedContribution() {
+      contributionModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({
+          _id: 'contribution-id',
+          status: ContributionStatus.SUCCESSFUL,
+          internal_reference: 'mdc_abc',
+        }),
+      });
+    }
+
     it('rejects a webhook with an invalid signature before touching anything else', async () => {
       paystackProvider.verifyWebhookSignature.mockReturnValue(false);
 
@@ -243,32 +253,72 @@ describe('ContributionsService', () => {
       expect(webhookEventModel.create).not.toHaveBeenCalled();
     });
 
-    it('processes a validly-signed webhook exactly once, deduping a retried delivery', async () => {
+    it('runs verifyAndSync on every delivery (cheap no-op once resolved) and dedupes only the WebhookEvent record', async () => {
       paystackProvider.verifyWebhookSignature.mockReturnValue(true);
       paystackProvider.extractReferenceFromWebhook.mockReturnValue('mdc_abc');
       webhookEventModel.create.mockResolvedValue({});
-      contributionModel.findOne.mockReturnValue({
-        exec: jest.fn().mockResolvedValue({
-          _id: 'contribution-id',
-          status: ContributionStatus.SUCCESSFUL,
-          internal_reference: 'mdc_abc',
-        }),
-      });
+      mockAlreadyResolvedContribution();
 
       await service.handleWebhook(ContributionProvider.PAYSTACK, rawBody, 'sig-1');
+      expect(webhookEventModel.create).toHaveBeenCalledTimes(1);
+      expect(contributionModel.findOne).toHaveBeenCalledTimes(1);
 
-      expect(webhookEventModel.create).toHaveBeenCalled();
-
-      // Retry: the same signature hashes to the same event_id, so the unique index
-      // rejects the second insert — simulate that duplicate-key error.
+      // Retry of the exact same delivery: same rawBody, so the same event_id hash —
+      // the unique index rejects the second WebhookEvent insert, but verifyAndSync
+      // still runs (harmlessly, since the contribution is already resolved).
       const duplicateError = Object.assign(new Error('E11000 duplicate key'), { code: 11000 });
       webhookEventModel.create.mockRejectedValueOnce(duplicateError);
 
       await service.handleWebhook(ContributionProvider.PAYSTACK, rawBody, 'sig-1');
+      expect(webhookEventModel.create).toHaveBeenCalledTimes(2);
+      expect(contributionModel.findOne).toHaveBeenCalledTimes(2);
+    });
 
-      // findOne (the lookup inside verifyAndSync) should only have been reached once,
-      // on the first delivery — the retry short-circuits before ever calling it again.
-      expect(contributionModel.findOne).toHaveBeenCalledTimes(1);
+    it('does not record the webhook event if verifyAndSync throws, so a genuine gateway retry of the same failed delivery is never wrongly deduped', async () => {
+      paystackProvider.verifyWebhookSignature.mockReturnValue(true);
+      paystackProvider.extractReferenceFromWebhook.mockReturnValue('mdc_abc');
+      contributionModel.findOne.mockReturnValue({ exec: jest.fn().mockRejectedValue(new Error('DB down')) });
+
+      await expect(service.handleWebhook(ContributionProvider.PAYSTACK, rawBody, 'sig-1')).rejects.toThrow(
+        'DB down',
+      );
+
+      expect(webhookEventModel.create).not.toHaveBeenCalled();
+    });
+
+    it('two different Flutterwave deliveries are never wrongly deduped, even though every Flutterwave webhook carries the exact same signature header', async () => {
+      // Flutterwave's "signature" is a static, dashboard-configured shared secret —
+      // identical on literally every delivery, unlike Paystack's per-body HMAC or
+      // Stripe's per-send timestamped signature. If event_id were still derived from
+      // the signature header (the pre-fix bug), these two calls would collide on the
+      // same dedup key despite being two completely unrelated contributions.
+      const flutterwaveProvider = {
+        verifyWebhookSignature: jest.fn().mockReturnValue(true),
+        extractReferenceFromWebhook: jest.fn(),
+      };
+      providerRegistry.get.mockReturnValue(flutterwaveProvider);
+      webhookEventModel.create.mockResolvedValue({});
+
+      const bodyA = Buffer.from(JSON.stringify({ data: { tx_ref: 'mdc_aaa' } }));
+      const bodyB = Buffer.from(JSON.stringify({ data: { tx_ref: 'mdc_bbb' } }));
+      const sameStaticSecretHeader = 'the-same-configured-webhook-hash';
+
+      flutterwaveProvider.extractReferenceFromWebhook.mockReturnValueOnce('mdc_aaa');
+      contributionModel.findOne.mockReturnValueOnce({
+        exec: jest.fn().mockResolvedValue({ _id: 'a', status: ContributionStatus.SUCCESSFUL, internal_reference: 'mdc_aaa' }),
+      });
+      await service.handleWebhook(ContributionProvider.FLUTTERWAVE, bodyA, sameStaticSecretHeader);
+
+      flutterwaveProvider.extractReferenceFromWebhook.mockReturnValueOnce('mdc_bbb');
+      contributionModel.findOne.mockReturnValueOnce({
+        exec: jest.fn().mockResolvedValue({ _id: 'b', status: ContributionStatus.SUCCESSFUL, internal_reference: 'mdc_bbb' }),
+      });
+      await service.handleWebhook(ContributionProvider.FLUTTERWAVE, bodyB, sameStaticSecretHeader);
+
+      // Both deliveries got their own WebhookEvent row — neither was dropped as a
+      // false "duplicate" of the other.
+      expect(webhookEventModel.create).toHaveBeenCalledTimes(2);
+      expect(contributionModel.findOne).toHaveBeenCalledTimes(2);
     });
   });
 });

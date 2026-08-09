@@ -6,10 +6,17 @@ export type WebhookEventDocument = HydratedDocument<WebhookEvent>;
 
 // Dedup ledger, not a domain entity — purely a technical safeguard so a gateway's
 // retried webhook delivery can never double-apply a status change. event_id is a hash
-// of the request's own signature header: since the signature is a deterministic
-// HMAC/hash of the body, an identical retried delivery produces an identical
-// signature, making it a reliable, provider-agnostic idempotency key without needing
-// each gateway's own event-id format.
+// of the raw request BODY, not the signature header — the header varies per gateway
+// in ways that break a header-based key: Flutterwave's `verif-hash` is a static
+// shared secret, identical on every single delivery regardless of the underlying
+// event, so hashing it would collide every Flutterwave webhook onto the same dedup
+// slot after the first one ever received; Stripe's `stripe-signature` embeds a fresh
+// timestamp per send, so hashing it would never recognize a genuine Stripe retry as a
+// duplicate. The raw body itself doesn't have either problem: a true retried delivery
+// resends the same event payload byte-for-byte (that's what "retry" means), so hashing
+// the body is deterministic across a real retry for all three gateways, while still
+// varying per distinct event since no two different transactions share a body. See
+// ContributionsService.handleWebhook().
 @Schema({ timestamps: { createdAt: 'processed_at', updatedAt: false } })
 export class WebhookEvent {
   @Prop({ required: true, enum: ContributionProvider })
