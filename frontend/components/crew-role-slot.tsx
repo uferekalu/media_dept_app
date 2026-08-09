@@ -25,6 +25,7 @@ import {
 import { CrewAssignmentStatusActions } from '@/components/crew-assignment-status-actions';
 import { CrewReassignControl } from '@/components/crew-reassign-control';
 import { useCreateCrewAssignmentMutation, useDeleteCrewAssignmentMutation } from '@/lib/redux/api';
+import { cn } from '@/lib/utils';
 import {
   CREW_ASSIGNMENT_ROLE_LABELS,
   CREW_ASSIGNMENT_STATUS_BADGE_VARIANT,
@@ -54,6 +55,7 @@ export function CrewRoleSlot({
 }) {
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
+  const [reassigning, setReassigning] = useState(false);
   const [createAssignment, { isLoading: isAssigning }] = useCreateCrewAssignmentMutation();
   const [deleteAssignment, { isLoading: isRemoving }] = useDeleteCrewAssignmentMutation();
 
@@ -95,7 +97,15 @@ export function CrewRoleSlot({
   const assignedMember = members?.find((m) => m._id === assignment?.media_team_member);
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-border p-3 sm:flex-row sm:items-center sm:justify-between">
+    <div
+      className={cn(
+        'flex flex-col gap-2 rounded-xl border border-border p-3',
+        // Stays stacked (never side-by-side) while reassigning — the Select+Confirm+
+        // Cancel trio is too wide to share a line with the role name and the badge/
+        // status/delete controls without squeezing everything into an unreadable mess.
+        !reassigning && 'sm:flex-row sm:items-center sm:justify-between',
+      )}
+    >
       <div className="min-w-0">
         <p className="text-body-sm font-medium text-foreground">
           {CREW_ASSIGNMENT_ROLE_LABELS[role]}
@@ -110,12 +120,12 @@ export function CrewRoleSlot({
       </div>
 
       {assignment ? (
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
           <Badge variant={CREW_ASSIGNMENT_STATUS_BADGE_VARIANT[assignment.status]}>
             {CREW_ASSIGNMENT_STATUS_LABELS[assignment.status]}
           </Badge>
           <CrewAssignmentStatusActions assignment={assignment} size="sm" />
-          <CrewReassignControl assignment={assignment} members={members} />
+          <CrewReassignControl assignment={assignment} members={members} onOpenChange={setReassigning} />
           <Button
             size="icon-sm"
             variant="outline"

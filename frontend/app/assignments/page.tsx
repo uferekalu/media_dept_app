@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { CrewAssignment } from '@/lib/types/crew-assignment';
+import type { MediaTeamMember } from '@/lib/types/media-team-member';
 import type { Service } from '@/lib/types/service';
 import {
   CREW_ASSIGNMENT_ROLE_LABELS,
@@ -36,6 +37,7 @@ import {
   MediaTeamMemberRole,
   SERVICE_TYPE_LABELS,
 } from '@/lib/types/enums';
+import { cn } from '@/lib/utils';
 
 const ALL_MEMBERS = 'ALL_MEMBERS';
 const ELEVATED_ROLES: string[] = [MediaTeamMemberRole.ADMIN, MediaTeamMemberRole.DIRECTOR];
@@ -62,7 +64,6 @@ export default function AllAssignmentsPage() {
   } = useGetAllCrewAssignmentsQuery(isElevated ? undefined : skipToken);
   const { data: services } = useGetServicesQuery(isElevated ? undefined : skipToken);
   const { data: members } = useGetMediaTeamMembersQuery(isElevated ? undefined : skipToken);
-  const [deleteAssignment, { isLoading: isDeleting }] = useDeleteCrewAssignmentMutation();
 
   const serviceById = useMemo(() => {
     const map = new Map<string, Service>();
@@ -93,15 +94,6 @@ export default function AllAssignmentsPage() {
       return new Date(dateB).getTime() - new Date(dateA).getTime();
     });
   }, [assignments, memberFilter, serviceById]);
-
-  async function handleRemove(id: string, serviceId: string, mediaTeamMemberId: string) {
-    try {
-      await deleteAssignment({ id, serviceId, mediaTeamMemberId }).unwrap();
-      toast.success('Assignment removed');
-    } catch {
-      toast.error('Could not remove this assignment.');
-    }
-  }
 
   if (isLoadingUser) {
     return (
@@ -216,36 +208,12 @@ export default function AllAssignmentsPage() {
                 </div>
                 <div className="flex flex-col gap-2">
                   {serviceAssignments.map((assignment) => (
-                    <div
+                    <AssignmentRow
                       key={assignment._id}
-                      className="flex flex-col gap-2 rounded-xl border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-body-sm font-medium text-foreground">
-                          {CREW_ASSIGNMENT_ROLE_LABELS[assignment.role]}
-                        </p>
-                        <p className="text-caption text-muted-foreground">
-                          {memberById.get(assignment.media_team_member) ?? 'Unknown member'}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 flex-wrap items-center gap-2">
-                        <Badge variant={CREW_ASSIGNMENT_STATUS_BADGE_VARIANT[assignment.status]}>
-                          {CREW_ASSIGNMENT_STATUS_LABELS[assignment.status]}
-                        </Badge>
-                        <CrewAssignmentStatusActions assignment={assignment} size="sm" />
-                        <CrewReassignControl assignment={assignment} members={members} />
-                        <Button
-                          size="icon-sm"
-                          variant="outline"
-                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => handleRemove(assignment._id, assignment.service, assignment.media_team_member)}
-                          disabled={isDeleting}
-                          aria-label={`Remove ${CREW_ASSIGNMENT_ROLE_LABELS[assignment.role]} assignment`}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
-                      </div>
-                    </div>
+                      assignment={assignment}
+                      memberName={memberById.get(assignment.media_team_member) ?? 'Unknown member'}
+                      members={members}
+                    />
                   ))}
                 </div>
               </div>
@@ -254,5 +222,67 @@ export default function AllAssignmentsPage() {
         </div>
       )}
     </main>
+  );
+}
+
+// Its own component (not inlined in the .map() above) so `reassigning` is real,
+// row-scoped state — needed both for correctness (hooks can't live inside a .map()
+// callback) and for layout: while reassigning, this row drops to a stacked column
+// instead of squeezing the Select+Confirm+Cancel trio onto the same line as the role
+// name and the badge/status/delete controls.
+function AssignmentRow({
+  assignment,
+  memberName,
+  members,
+}: {
+  assignment: CrewAssignment;
+  memberName: string;
+  members: MediaTeamMember[] | undefined;
+}) {
+  const [reassigning, setReassigning] = useState(false);
+  const [deleteAssignment, { isLoading: isDeleting }] = useDeleteCrewAssignmentMutation();
+
+  async function handleRemove() {
+    try {
+      await deleteAssignment({
+        id: assignment._id,
+        serviceId: assignment.service,
+        mediaTeamMemberId: assignment.media_team_member,
+      }).unwrap();
+      toast.success('Assignment removed');
+    } catch {
+      toast.error('Could not remove this assignment.');
+    }
+  }
+
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-2 rounded-xl border border-border p-3',
+        !reassigning && 'sm:flex-row sm:items-center sm:justify-between',
+      )}
+    >
+      <div className="min-w-0">
+        <p className="text-body-sm font-medium text-foreground">{CREW_ASSIGNMENT_ROLE_LABELS[assignment.role]}</p>
+        <p className="text-caption text-muted-foreground">{memberName}</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+        <Badge variant={CREW_ASSIGNMENT_STATUS_BADGE_VARIANT[assignment.status]}>
+          {CREW_ASSIGNMENT_STATUS_LABELS[assignment.status]}
+        </Badge>
+        <CrewAssignmentStatusActions assignment={assignment} size="sm" />
+        <CrewReassignControl assignment={assignment} members={members} onOpenChange={setReassigning} />
+        <Button
+          size="icon-sm"
+          variant="outline"
+          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={handleRemove}
+          disabled={isDeleting}
+          aria-label={`Remove ${CREW_ASSIGNMENT_ROLE_LABELS[assignment.role]} assignment`}
+        >
+          <Trash2 className="size-3.5" />
+        </Button>
+      </div>
+    </div>
   );
 }
