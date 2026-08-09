@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { ThrottlerModule, minutes } from '@nestjs/throttler';
 import type { SignOptions } from 'jsonwebtoken';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -27,6 +28,13 @@ import { TermiiModule } from '../../common/termii/termii.module';
         },
       }),
     }),
+    // Scoped to this module only, not registered as a global APP_GUARD — the rest of
+    // the API (including the Contributions return page's 3s GET /contributions/:id
+    // poll loop) must never be rate-limited by this. ThrottlerGuard is applied per-route
+    // below on exactly the four endpoints the audit flagged as unthrottled brute-force/
+    // enumeration/SMS-bombing surfaces. This 'default' throttler is a fallback only —
+    // every route below overrides it with its own @Throttle().
+    ThrottlerModule.forRoot([{ name: 'default', ttl: minutes(1), limit: 10 }]),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
