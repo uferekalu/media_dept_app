@@ -5,7 +5,12 @@ import {
   type FetchArgs,
   type FetchBaseQueryError,
 } from '@reduxjs/toolkit/query/react';
-import type { Service } from '@/lib/types/service';
+import type { CreateServiceInput, Service, UpdateServiceInput } from '@/lib/types/service';
+import type {
+  CreateRunOfShowItemInput,
+  RunOfShowItem,
+  UpdateRunOfShowItemInput,
+} from '@/lib/types/run-of-show-item';
 import type { StatusLog } from '@/lib/types/status-log';
 import type { MediaTeamMember, UpdateMediaTeamMemberInput } from '@/lib/types/media-team-member';
 import type { CrewAssignment } from '@/lib/types/crew-assignment';
@@ -91,6 +96,7 @@ export const api = createApi({
   refetchOnReconnect: true,
   tagTypes: [
     'Service',
+    'RunOfShowItem',
     'StatusLog',
     'MediaTeamMember',
     'CrewAssignment',
@@ -163,6 +169,32 @@ export const api = createApi({
       providesTags: (_result, _error, id) => [{ type: 'Service', id }],
     }),
 
+    // Powers the Create Service screen (brief Section 5, screen 4). Always starts at
+    // PLANNED — status only ever moves through updateServiceStatus below.
+    createService: builder.mutation<Service, CreateServiceInput>({
+      query: (body) => ({ url: '/services', method: 'POST', body }),
+      invalidatesTags: [{ type: 'Service', id: 'LIST' }],
+    }),
+
+    // Powers the Service detail screen's edit mode — details only, never status.
+    updateService: builder.mutation<Service, { id: string } & UpdateServiceInput>({
+      query: ({ id, ...body }) => ({ url: `/services/${id}`, method: 'PATCH', body }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Service', id },
+        { type: 'Service', id: 'LIST' },
+        { type: 'Service', id: 'LIVE_NOW' },
+      ],
+    }),
+
+    deleteService: builder.mutation<void, string>({
+      query: (id) => ({ url: `/services/${id}`, method: 'DELETE' }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: 'Service', id },
+        { type: 'Service', id: 'LIST' },
+        { type: 'Service', id: 'LIVE_NOW' },
+      ],
+    }),
+
     // Generic per-entity log — kept for any screen that only needs one entity's
     // history (e.g. a single Broadcast's own timeline, should that ever get its own
     // screen). The Status Timeline screen uses getServiceTimeline below instead, since
@@ -188,6 +220,49 @@ export const api = createApi({
         { type: 'Service', id },
         { type: 'Service', id: 'LIVE_NOW' },
         { type: 'StatusLog', id },
+      ],
+    }),
+
+    // Powers the Service detail screen's run-of-show builder (brief Section 4A).
+    getRunOfShowForService: builder.query<RunOfShowItem[], string>({
+      query: (serviceId) => `/run-of-show?service=${serviceId}`,
+      providesTags: (result, _error, serviceId) => [
+        { type: 'RunOfShowItem' as const, id: `service-${serviceId}` },
+        ...(result ?? []).map((item) => ({ type: 'RunOfShowItem' as const, id: item._id })),
+      ],
+    }),
+
+    createRunOfShowItem: builder.mutation<RunOfShowItem, CreateRunOfShowItemInput>({
+      query: (body) => ({ url: '/run-of-show', method: 'POST', body }),
+      invalidatesTags: (result) =>
+        result ? [{ type: 'RunOfShowItem', id: `service-${result.service}` }] : [],
+    }),
+
+    updateRunOfShowItem: builder.mutation<
+      RunOfShowItem,
+      { id: string; serviceId: string } & UpdateRunOfShowItemInput
+    >({
+      query: ({ id, serviceId: _serviceId, ...body }) => ({ url: `/run-of-show/${id}`, method: 'PATCH', body }),
+      invalidatesTags: (_result, _error, { id, serviceId }) => [
+        { type: 'RunOfShowItem', id },
+        { type: 'RunOfShowItem', id: `service-${serviceId}` },
+      ],
+    }),
+
+    deleteRunOfShowItem: builder.mutation<void, { id: string; serviceId: string }>({
+      query: ({ id }) => ({ url: `/run-of-show/${id}`, method: 'DELETE' }),
+      invalidatesTags: (_result, _error, { id, serviceId }) => [
+        { type: 'RunOfShowItem', id },
+        { type: 'RunOfShowItem', id: `service-${serviceId}` },
+      ],
+    }),
+
+    // "Duplicate a previous service's run-of-show as a starting template" (brief
+    // Section 4A) — target_service must not already have any items.
+    duplicateRunOfShow: builder.mutation<RunOfShowItem[], { source_service: string; target_service: string }>({
+      query: (body) => ({ url: '/run-of-show/duplicate', method: 'POST', body }),
+      invalidatesTags: (_result, _error, { target_service }) => [
+        { type: 'RunOfShowItem', id: `service-${target_service}` },
       ],
     }),
 
@@ -724,9 +799,17 @@ export const {
   useGetLiveNowServicesQuery,
   useGetServicesQuery,
   useGetServiceQuery,
+  useCreateServiceMutation,
+  useUpdateServiceMutation,
+  useDeleteServiceMutation,
   useGetStatusLogQuery,
   useGetServiceTimelineQuery,
   useUpdateServiceStatusMutation,
+  useGetRunOfShowForServiceQuery,
+  useCreateRunOfShowItemMutation,
+  useUpdateRunOfShowItemMutation,
+  useDeleteRunOfShowItemMutation,
+  useDuplicateRunOfShowMutation,
   useGetMediaTeamMembersQuery,
   useGetMediaTeamMemberQuery,
   useUpdateMediaTeamMemberMutation,
