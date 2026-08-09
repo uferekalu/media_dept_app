@@ -242,7 +242,13 @@ export const api = createApi({
       RunOfShowItem,
       { id: string; serviceId: string } & UpdateRunOfShowItemInput
     >({
-      query: ({ id, serviceId: _serviceId, ...body }) => ({ url: `/run-of-show/${id}`, method: 'PATCH', body }),
+      query: ({ id, serviceId, ...body }) => {
+        // serviceId is only needed by invalidatesTags below, never sent in the PATCH
+        // body — UpdateRunOfShowItemDto doesn't have that field and the backend's
+        // ValidationPipe (forbidNonWhitelisted: true) would 400 on an unknown key.
+        void serviceId;
+        return { url: `/run-of-show/${id}`, method: 'PATCH', body };
+      },
       invalidatesTags: (_result, _error, { id, serviceId }) => [
         { type: 'RunOfShowItem', id },
         { type: 'RunOfShowItem', id: `service-${serviceId}` },
@@ -338,6 +344,20 @@ export const api = createApi({
       ],
     }),
 
+    // Powers the All Assignments board (Admin/Director-only, matching the backend's
+    // own @Roles() guard on this route — every other getCrewAssignmentsBy* query is
+    // scoped to one service or one member; this is the only unscoped one).
+    getAllCrewAssignments: builder.query<CrewAssignment[], void>({
+      query: () => '/crew-assignments',
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((a) => ({ type: 'CrewAssignment' as const, id: a._id })),
+              { type: 'CrewAssignment' as const, id: 'ALL' },
+            ]
+          : [{ type: 'CrewAssignment' as const, id: 'ALL' }],
+    }),
+
     createCrewAssignment: builder.mutation<
       CrewAssignment,
       { service: string; media_team_member: string; role: CrewAssignmentRole; call_time: string; notes?: string }
@@ -348,6 +368,7 @@ export const api = createApi({
           ? [
               { type: 'CrewAssignment', id: `service-${result.service}` },
               { type: 'CrewAssignment', id: `member-${result.media_team_member}` },
+              { type: 'CrewAssignment', id: 'ALL' },
             ]
           : [],
     }),
@@ -371,6 +392,35 @@ export const api = createApi({
       ],
     }),
 
+    // Direct one-click reassignment (brief: "an Admin/Director should be able to
+    // assign AND reassign a crew member") via the general PATCH .../:id — the same
+    // route the backend already describes as covering "reassign, reschedule,
+    // re-roster." Previously the only way to change who's in a filled role was
+    // delete-then-recreate; this preserves the assignment's own id/history instead.
+    // previousMediaTeamMemberId travels alongside the body so the old member's own
+    // scoped cache gets invalidated too — the PATCH response only reflects the new one.
+    reassignCrewAssignment: builder.mutation<
+      CrewAssignment,
+      { id: string; media_team_member: string; previousMediaTeamMemberId: string }
+    >({
+      query: ({ id, media_team_member }) => ({
+        url: `/crew-assignments/${id}`,
+        method: 'PATCH',
+        body: { media_team_member },
+      }),
+      invalidatesTags: (result, _error, { id, previousMediaTeamMemberId }) => [
+        { type: 'CrewAssignment', id },
+        { type: 'CrewAssignment', id: `member-${previousMediaTeamMemberId}` },
+        { type: 'CrewAssignment', id: 'ALL' },
+        ...(result
+          ? [
+              { type: 'CrewAssignment' as const, id: `service-${result.service}` },
+              { type: 'CrewAssignment' as const, id: `member-${result.media_team_member}` },
+            ]
+          : []),
+      ],
+    }),
+
     // serviceId/mediaTeamMemberId travel alongside id purely so their scoped list
     // caches can be invalidated precisely — DELETE returns no body to derive them from.
     deleteCrewAssignment: builder.mutation<void, { id: string; serviceId: string; mediaTeamMemberId: string }>({
@@ -379,6 +429,7 @@ export const api = createApi({
         { type: 'CrewAssignment', id },
         { type: 'CrewAssignment', id: `service-${serviceId}` },
         { type: 'CrewAssignment', id: `member-${mediaTeamMemberId}` },
+        { type: 'CrewAssignment', id: 'ALL' },
       ],
     }),
 
@@ -817,8 +868,10 @@ export const {
   useRemoveMediaTeamMemberPhotoMutation,
   useGetCrewAssignmentsByServiceQuery,
   useGetCrewAssignmentsByMediaTeamMemberQuery,
+  useGetAllCrewAssignmentsQuery,
   useCreateCrewAssignmentMutation,
   useUpdateCrewAssignmentStatusMutation,
+  useReassignCrewAssignmentMutation,
   useDeleteCrewAssignmentMutation,
   useGetPlatformsQuery,
   useGetBroadcastsByServiceQuery,

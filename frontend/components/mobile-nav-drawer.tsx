@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BarChart3, ChevronsLeft, ChevronsRight, HandCoins, Images, LayoutDashboard, ListChecks, Package, ShieldCheck, Send, Users } from 'lucide-react';
+import { BarChart3, CalendarDays, ChevronsLeft, ChevronsRight, ClipboardList, HandCoins, Images, LayoutDashboard, ListChecks, Package, ShieldCheck, Send, Users } from 'lucide-react';
 import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -12,10 +12,14 @@ import { MediaTeamMemberRole } from '@/lib/types/enums';
 // Mirrors app-nav.tsx's link list — kept as a separate array (not shared) since the
 // two components' link shape differs (this one needs an icon per link, the desktop
 // tab row doesn't). Contributions Ledger is Admin-only (brief Section 4I, stricter
-// than every other screen's Admin+Director split) — filtered out below for anyone else.
+// than every other screen's Admin+Director split); All Assignments is Admin/
+// Director-only (its backing GET /crew-assignments is itself gated that way) — both
+// filtered out below for anyone else.
 const NAV_LINKS = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/services', label: 'Services', icon: CalendarDays },
   { href: '/my-assignments', label: 'My Assignments', icon: ListChecks },
+  { href: '/assignments', label: 'All Assignments', icon: ClipboardList, elevatedOnly: true },
   { href: '/equipment', label: 'Equipment', icon: Package },
   { href: '/media', label: 'Media Library', icon: Images },
   { href: '/social-posts', label: 'Social Posts', icon: Send },
@@ -75,7 +79,13 @@ export function MobileNavDrawer() {
 
   if (!currentUser) return null;
 
-  const links = NAV_LINKS.filter((link) => !link.adminOnly || currentUser.role === MediaTeamMemberRole.ADMIN);
+  const links = NAV_LINKS.filter((link) => {
+    if (link.adminOnly) return currentUser.role === MediaTeamMemberRole.ADMIN;
+    if (link.elevatedOnly) {
+      return currentUser.role === MediaTeamMemberRole.ADMIN || currentUser.role === MediaTeamMemberRole.DIRECTOR;
+    }
+    return true;
+  });
 
   return (
     <nav

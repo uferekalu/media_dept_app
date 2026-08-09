@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { CrewAssignmentStatusActions } from '@/components/crew-assignment-status-actions';
+import { CrewReassignControl } from '@/components/crew-reassign-control';
 import { useCreateCrewAssignmentMutation, useDeleteCrewAssignmentMutation } from '@/lib/redux/api';
 import {
   CREW_ASSIGNMENT_ROLE_LABELS,
@@ -114,6 +115,7 @@ export function CrewRoleSlot({
             {CREW_ASSIGNMENT_STATUS_LABELS[assignment.status]}
           </Badge>
           <CrewAssignmentStatusActions assignment={assignment} size="sm" />
+          <CrewReassignControl assignment={assignment} members={members} />
           <Button
             size="icon-sm"
             variant="outline"
