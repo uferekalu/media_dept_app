@@ -12,8 +12,14 @@ import type { Service } from '@/lib/types/service';
 // Combines the segment's time-of-day with the parent Service's own `date` to build
 // scheduled_start_time — same reasoning as service-form.tsx's toIso(): a segment
 // picker asking for a full datetime would risk landing on the wrong calendar day.
+// service.date arrives as a full ISO datetime (Service.date is a Mongoose `Date`,
+// which serializes as e.g. "2026-08-16T00:00:00.000Z", never a bare "2026-08-16"),
+// so it's normalized down to just its date portion first — concatenating the raw
+// value here would build a malformed "...ZT13:52" string whose Date parse fails and
+// whose .toISOString() throws, silently aborting the whole submit before the API
+// call (or its try/catch) is ever reached.
 function toIso(date: string, time: string): string {
-  return new Date(`${date}T${time}`).toISOString();
+  return new Date(`${date.slice(0, 10)}T${time}`).toISOString();
 }
 
 function toTimeInput(iso: string): string {
@@ -61,16 +67,16 @@ export function RunOfShowItemForm({
       return;
     }
 
-    const body = {
-      order: orderNum,
-      segment_name: segmentName.trim(),
-      scheduled_start_time: toIso(service.date, time),
-      duration_minutes: durationNum,
-      graphics_notes: graphicsNotes.trim() || undefined,
-      notes: notes.trim() || undefined,
-    };
-
     try {
+      const body = {
+        order: orderNum,
+        segment_name: segmentName.trim(),
+        scheduled_start_time: toIso(service.date, time),
+        duration_minutes: durationNum,
+        graphics_notes: graphicsNotes.trim() || undefined,
+        notes: notes.trim() || undefined,
+      };
+
       if (item) {
         await updateItem({ id: item._id, serviceId: service._id, ...body }).unwrap();
         toast.success('Segment updated');

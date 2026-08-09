@@ -58,26 +58,26 @@ export function ServiceForm({ service }: { service?: Service }) {
       return;
     }
 
-    const startIso = toIso(date, startTime);
-    const endIso = toIso(date, endTime);
-    if (endIso <= startIso) {
-      toast.error('End time must be after start time.');
-      return;
-    }
-
-    const body = {
-      name: name.trim(),
-      type,
-      date,
-      start_time: startIso,
-      end_time: endIso,
-      venue: venue.trim(),
-      speaker: speaker.trim() || undefined,
-      series: series.trim() || undefined,
-      description: description.trim() || undefined,
-    };
-
     try {
+      const startIso = toIso(date, startTime);
+      const endIso = toIso(date, endTime);
+      if (endIso <= startIso) {
+        toast.error('End time must be after start time.');
+        return;
+      }
+
+      const body = {
+        name: name.trim(),
+        type,
+        date,
+        start_time: startIso,
+        end_time: endIso,
+        venue: venue.trim(),
+        speaker: speaker.trim() || undefined,
+        series: series.trim() || undefined,
+        description: description.trim() || undefined,
+      };
+
       if (service) {
         await updateService({ id: service._id, ...body }).unwrap();
         toast.success('Service updated');
