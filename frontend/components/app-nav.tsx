@@ -10,13 +10,16 @@ import { MediaTeamMemberRole } from '@/lib/types/enums';
 // protocol_dept_app's app-nav.tsx exactly. Below `sm`, MobileNavDrawer takes over
 // instead. Grows as each phase adds a screen — mostly no role-based filtering yet
 // (that's a later polish pass on top of Phase 7's guards, same as
-// protocol_dept_app's own staging), except Contributions Ledger, which brief Section
-// 4I scopes stricter than every other screen (Admin-only, not Admin+Director) — must
-// only render for a confirmed logged-in identity, otherwise the internal nav leaks
-// through on /login itself for a logged-out visitor.
+// protocol_dept_app's own staging). Two exceptions: Contributions Ledger, which brief
+// Section 4I scopes stricter than every other screen (Admin-only, not Admin+
+// Director), and All Assignments, whose backing GET /crew-assignments is itself
+// Admin/Director-only. Must only render for a confirmed logged-in identity, otherwise
+// the internal nav leaks through on /login itself for a logged-out visitor.
 const NAV_LINKS = [
   { href: '/', label: 'Dashboard' },
+  { href: '/services', label: 'Services' },
   { href: '/my-assignments', label: 'My Assignments' },
+  { href: '/assignments', label: 'All Assignments', elevatedOnly: true },
   { href: '/equipment', label: 'Equipment' },
   { href: '/media', label: 'Media Library' },
   { href: '/social-posts', label: 'Social Posts' },
@@ -32,7 +35,13 @@ export function AppNav() {
 
   if (!currentUser) return null;
 
-  const links = NAV_LINKS.filter((link) => !link.adminOnly || currentUser.role === MediaTeamMemberRole.ADMIN);
+  const links = NAV_LINKS.filter((link) => {
+    if (link.adminOnly) return currentUser.role === MediaTeamMemberRole.ADMIN;
+    if (link.elevatedOnly) {
+      return currentUser.role === MediaTeamMemberRole.ADMIN || currentUser.role === MediaTeamMemberRole.DIRECTOR;
+    }
+    return true;
+  });
 
   return (
     <nav
