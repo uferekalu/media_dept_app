@@ -2,20 +2,17 @@
 
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ServiceStatusStepper } from '@/components/service-status-stepper';
-import { useGetBroadcastsByServiceQuery, useGetPlatformsQuery, useUpdateServiceStatusMutation } from '@/lib/redux/api';
+import { ServiceStatusActions } from '@/components/service-status-actions';
+import { useGetBroadcastsByServiceQuery, useGetPlatformsQuery } from '@/lib/redux/api';
 import {
   BROADCAST_STATUS_BADGE_VARIANT,
   BROADCAST_STATUS_LABELS,
   PLATFORM_NAME_LABELS,
-  SERVICE_STATUS_ACTION_LABELS,
   SERVICE_TYPE_LABELS,
-  VALID_SERVICE_STATUS_TRANSITIONS,
 } from '@/lib/types/enums';
 import type { Service } from '@/lib/types/service';
 
@@ -53,22 +50,6 @@ function PlatformStatusBadges({ serviceId }: { serviceId: string }) {
   );
 }
 export function ServiceCard({ service }: { service: Service }) {
-  const [updateStatus, { isLoading: isUpdating }] = useUpdateServiceStatusMutation();
-  const nextStatuses = VALID_SERVICE_STATUS_TRANSITIONS[service.status];
-
-  async function handleAdvance(next: (typeof nextStatuses)[number]) {
-    try {
-      await updateStatus({ id: service._id, status: next }).unwrap();
-      toast.success(`${service.name}: ${SERVICE_STATUS_ACTION_LABELS[service.status]}`);
-    } catch (error) {
-      const message =
-        error && typeof error === 'object' && 'data' in error
-          ? (error.data as { message?: string })?.message
-          : undefined;
-      toast.error(message ?? 'Could not update status. Please try again.');
-    }
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -88,22 +69,15 @@ export function ServiceCard({ service }: { service: Service }) {
 
         <PlatformStatusBadges serviceId={service._id} />
 
-        {nextStatuses.length > 0 ? (
-          // Full-width, real touch target (h-11 = 44px) — per frontend/CLAUDE.md's
-          // "big, unambiguous primary actions" and mobile-first status-update UX.
-          <Button
-            size="lg"
-            onClick={() => handleAdvance(nextStatuses[0])}
-            disabled={isUpdating}
-            className="h-16 text-body font-semibold"
-          >
-            {SERVICE_STATUS_ACTION_LABELS[service.status]}
-          </Button>
-        ) : (
-          <p className="text-caption text-muted-foreground">Fully archived.</p>
-        )}
+        <ServiceStatusActions service={service} />
 
         <div className="flex flex-wrap gap-x-4 gap-y-1">
+          <Link
+            href={`/services/${service._id}`}
+            className="text-body-sm text-primary hover:underline"
+          >
+            View details
+          </Link>
           <Link
             href={`/services/${service._id}/timeline`}
             className="text-body-sm text-primary hover:underline"
