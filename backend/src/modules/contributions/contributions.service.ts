@@ -177,10 +177,15 @@ export class ContributionsService {
     return contribution;
   }
 
-  // Entry point for every gateway's webhook route. Verifies the signature, dedupes via
-  // WebhookEvent, then delegates the actual status update to verifyAndSync() — the
-  // webhook is only ever a trigger to re-check with the gateway, never a source of
-  // truth on its own.
+  // Entry point for every gateway's webhook route. Verifies the signature, delegates
+  // the actual status update to verifyAndSync() (itself idempotent — see its own
+  // atomic findOneAndUpdate calls), and only *after* that succeeds records the
+  // delivery in WebhookEvent so a later genuine retry short-circuits without a second
+  // round-trip to the gateway. Recording the dedup row before the sync completes would
+  // mean a transient failure (e.g. a network blip calling the gateway's verify API)
+  // permanently "burns" that delivery's dedup slot — the gateway's own retry of the
+  // exact same event would then be wrongly dropped as a duplicate of an attempt that
+  // never actually succeeded.
   async handleWebhook(
     providerName: ContributionProvider,
     rawBody: Buffer,
@@ -193,21 +198,6 @@ export class ContributionsService {
       throw new BadRequestException('Invalid webhook signature.');
     }
 
-    const eventId = createHash('sha256').update(String(signatureHeader)).digest('hex');
-    try {
-      await this.webhookEventModel.create({
-        provider: providerName,
-        event_id: eventId,
-        payload: JSON.parse(rawBody.toString('utf8')),
-      });
-    } catch (error) {
-      if (this.isDuplicateKeyError(error)) {
-        this.logger.log(`Ignoring a duplicate ${providerName} webhook delivery`);
-        return;
-      }
-      throw error;
-    }
-
     const reference = provider.extractReferenceFromWebhook(rawBody);
     if (!reference) {
       this.logger.warn(`${providerName} webhook had no extractable reference — nothing to sync`);
@@ -215,6 +205,29 @@ export class ContributionsService {
     }
 
     await this.verifyAndSync(reference);
+
+    // event_id is a hash of the raw BODY, not the signature header — see
+    // WebhookEvent's own schema comment for why a header-based key breaks for both
+    // Flutterwave (static shared-secret header, identical on every delivery) and
+    // Stripe (timestamp-salted header, different on every delivery including retries
+    // of the same event).
+    const eventId = createHash('sha256').update(rawBody).digest('hex');
+    try {
+      await this.webhookEventModel.create({
+        provider: providerName,
+        event_id: eventId,
+        payload: JSON.parse(rawBody.toString('utf8')),
+      });
+    } catch (error) {
+      // A duplicate key here just means this exact delivery was already recorded by
+      // an earlier, successful call (a genuine retry after success, or a race against
+      // a concurrent identical delivery) — verifyAndSync() above already made that
+      // safe to run twice, so there's nothing left to do.
+      if (!this.isDuplicateKeyError(error)) {
+        throw error;
+      }
+      this.logger.log(`${providerName} webhook delivery already recorded — no-op`);
+    }
   }
 
   private isDuplicateKeyError(error: unknown): boolean {
