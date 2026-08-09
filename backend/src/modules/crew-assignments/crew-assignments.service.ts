@@ -131,6 +131,14 @@ export class CrewAssignmentsService {
       }
     }
 
+    // Captured before the write below — findByIdAndUpdate's `new: true` result only
+    // reflects the *new* member, so this is the only point that still knows whether
+    // media_team_member is actually changing (a reassignment) versus dto touching some
+    // other field (reschedule/re-roster/notes) while leaving the same person in place.
+    const isReassignment =
+      dto.media_team_member !== undefined &&
+      dto.media_team_member !== existing.media_team_member.toString();
+
     let assignment: CrewAssignmentDocument | null;
     try {
       assignment = await this.crewAssignmentModel.findByIdAndUpdate(id, dto, { new: true }).exec();
@@ -140,6 +148,20 @@ export class CrewAssignmentsService {
     if (!assignment) {
       throw new NotFoundException(`Crew assignment ${id} not found`);
     }
+
+    if (isReassignment) {
+      // Same "notify the person now on the hook" intent as create()'s own call below —
+      // reassigning is a form of crew assignment, and the newly-assigned member has no
+      // other way to find out short of opening the app and checking. Best-effort, same
+      // reasoning as create(): a notification failure must never fail the reassignment.
+      try {
+        const service = await this.servicesService.findOne(assignment.service.toString());
+        await this.notifyAssignment(assignment, service.name);
+      } catch {
+        // swallowed deliberately
+      }
+    }
+
     return assignment;
   }
 

@@ -79,6 +79,109 @@ describe('CrewAssignmentsService', () => {
       await expect(service.create(dto)).rejects.toBeInstanceOf(ConflictException);
       expect(model.create).not.toHaveBeenCalled();
     });
+
+    it('sends the assigned member an SMS', async () => {
+      model.findOne.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+      model.create.mockResolvedValue({ ...dto, media_team_member: 'member-id' });
+
+      await service.create(dto);
+
+      expect(termiiService.sendSms).toHaveBeenCalledWith(
+        '+2348033334444',
+        expect.stringContaining('Tolu Bankole'),
+      );
+    });
+
+    it('never fails assignment creation if the SMS send itself throws', async () => {
+      model.findOne.mockReturnValue({ exec: jest.fn().mockResolvedValue(null) });
+      model.create.mockResolvedValue({ ...dto, media_team_member: 'member-id' });
+      termiiService.sendSms.mockRejectedValueOnce(new Error('Termii is down'));
+
+      await expect(service.create(dto)).resolves.toBeDefined();
+    });
+  });
+
+  describe('update', () => {
+    function mockExistingAssignment(overrides: Record<string, unknown> = {}) {
+      model.findById.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({
+          _id: 'assignment-id',
+          service: 'service-id',
+          media_team_member: 'old-member-id',
+          role: CrewAssignmentRole.CAMERA_1,
+          ...overrides,
+        }),
+      });
+    }
+
+    it('reassigning to a different member notifies the newly-assigned member by SMS', async () => {
+      mockExistingAssignment();
+      model.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({
+          _id: 'assignment-id',
+          service: 'service-id',
+          media_team_member: 'member-id', // the new member from mediaTeamMembersService's mock
+          role: CrewAssignmentRole.CAMERA_1,
+        }),
+      });
+
+      await service.update('assignment-id', { media_team_member: 'member-id' });
+
+      expect(termiiService.sendSms).toHaveBeenCalledWith(
+        '+2348033334444',
+        expect.stringContaining('Tolu Bankole'),
+      );
+    });
+
+    it('does not send an SMS for an update that leaves the assigned member unchanged', async () => {
+      mockExistingAssignment({ media_team_member: 'member-id' });
+      model.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({
+          _id: 'assignment-id',
+          service: 'service-id',
+          media_team_member: 'member-id',
+          role: CrewAssignmentRole.CAMERA_1,
+          notes: 'Bring the backup battery',
+        }),
+      });
+
+      await service.update('assignment-id', { notes: 'Bring the backup battery' });
+
+      expect(termiiService.sendSms).not.toHaveBeenCalled();
+    });
+
+    it('does not send an SMS when media_team_member is set to the same id it already was', async () => {
+      mockExistingAssignment({ media_team_member: 'member-id' });
+      model.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({
+          _id: 'assignment-id',
+          service: 'service-id',
+          media_team_member: 'member-id',
+          role: CrewAssignmentRole.CAMERA_1,
+        }),
+      });
+
+      await service.update('assignment-id', { media_team_member: 'member-id' });
+
+      expect(termiiService.sendSms).not.toHaveBeenCalled();
+    });
+
+    it('never fails the reassignment itself if the SMS send throws', async () => {
+      mockExistingAssignment();
+      model.findByIdAndUpdate.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({
+          _id: 'assignment-id',
+          service: 'service-id',
+          media_team_member: 'member-id',
+          role: CrewAssignmentRole.CAMERA_1,
+        }),
+      });
+      termiiService.sendSms.mockRejectedValueOnce(new Error('Termii is down'));
+
+      await expect(
+        service.update('assignment-id', { media_team_member: 'member-id' }),
+      ).resolves.toBeDefined();
+    });
   });
 
   describe('updateStatus', () => {

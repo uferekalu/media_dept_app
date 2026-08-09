@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { AlertTriangle, ArrowLeft } from 'lucide-react';
+import { useCurrentUser } from '@/lib/hooks/use-current-user';
 import {
   useGetCrewAssignmentsByServiceQuery,
   useGetMediaTeamMembersQuery,
@@ -12,14 +13,23 @@ import { CrewRoleSlot } from '@/components/crew-role-slot';
 import { EmptyPanel, IconBadge } from '@/components/empty-panel';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CREW_ASSIGNMENT_ROLE_ORDER } from '@/lib/types/enums';
+import { CREW_ASSIGNMENT_ROLE_ORDER, MediaTeamMemberRole } from '@/lib/types/enums';
+
+const ELEVATED_ROLES: string[] = [MediaTeamMemberRole.ADMIN, MediaTeamMemberRole.DIRECTOR];
 
 // Crew Assignment Board — brief Section 5 (screen 5): fill each of the 8 fixed crew
 // roles for one service with a media team member. New call_time assignments default
 // to the service's own start_time (fine-tuning a specific call_time ahead of the
-// service's start is a later polish item, not required for the core flow).
+// service's start is a later polish item, not required for the core flow). Reading is
+// open to any authenticated role (per backend/CLAUDE.md's Crew Assignments section —
+// anyone should be able to see who's on the crew), but assigning/reassigning/removing
+// is Admin/Director-only; CrewRoleSlot is told isElevated + the viewer's own id so it
+// can hide (not just disable) those controls for a Member instead of presenting
+// actions that would 403.
 export default function CrewAssignmentBoardPage() {
   const { id } = useParams<{ id: string }>();
+  const { data: currentUser } = useCurrentUser();
+  const isElevated = !!currentUser && ELEVATED_ROLES.includes(currentUser.role);
 
   const { data: service, isLoading: serviceLoading, isError, error, refetch } = useGetServiceQuery(id);
   const { data: assignments, isLoading: assignmentsLoading } = useGetCrewAssignmentsByServiceQuery(id);
@@ -77,6 +87,8 @@ export default function CrewAssignmentBoardPage() {
                 callTime={service.start_time}
                 assignment={assignments?.find((a) => a.role === role)}
                 members={members}
+                isElevated={isElevated}
+                currentUserId={currentUser?._id}
               />
             ))}
           </div>
